@@ -31,6 +31,10 @@ export const login = async (data: { email: string; password: string }) => {
     throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 });
   }
 
+  if (!user.isActive) {
+    throw Object.assign(new Error('Account is deactivated'), { statusCode: 403 });
+  }
+
   const token = generateToken(user);
   return { user, token };
 };
