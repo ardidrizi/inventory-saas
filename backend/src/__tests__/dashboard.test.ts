@@ -2,22 +2,25 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import app from '../app';
 import '../__tests__/setup';
+import User from '../models/User';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
 let adminToken: string;
 
-const registerAdmin = async () => {
-  const res = await request(app).post('/api/auth/register').send({
+const createAdmin = async () => {
+  const user = await User.create({
     name: 'Admin',
     email: 'admin@test.com',
     password: 'password123',
     role: 'admin',
   });
-  return res.body.token;
+  return jwt.sign({ userId: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '1h' });
 };
 
 describe('Dashboard API', () => {
   beforeEach(async () => {
-    adminToken = await registerAdmin();
+    adminToken = await createAdmin();
   });
 
   it('should return dashboard stats with empty data', async () => {
