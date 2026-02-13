@@ -1,10 +1,12 @@
 import { Response, NextFunction } from 'express';
 import * as orderService from '../services/order.service';
 import { AuthRequest } from '../middleware/auth';
+import { logAction } from '../services/audit.service';
 
 export const create = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const order = await orderService.create(req.body, req.userId!);
+    await logAction({ userId: req.userId!, action: 'CREATE', entityType: 'Order', entityId: order._id, metadata: { orderNumber: order.orderNumber } });
     res.status(201).json(order);
   } catch (error) {
     next(error);
@@ -36,6 +38,7 @@ export const findById = async (req: AuthRequest, res: Response, next: NextFuncti
 export const updateStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const order = await orderService.updateStatus(req.params.id as string, req.body.status);
+    await logAction({ userId: req.userId!, action: 'UPDATE_STATUS', entityType: 'Order', entityId: order._id, metadata: { status: order.status } });
     res.json(order);
   } catch (error) {
     next(error);

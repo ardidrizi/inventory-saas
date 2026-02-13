@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import * as productService from '../services/product.service';
+import { AuthRequest } from '../middleware/auth';
+import { logAction } from '../services/audit.service';
 
-export const create = async (req: Request, res: Response, next: NextFunction) => {
+export const create = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const product = await productService.create(req.body);
+    await logAction({ userId: req.userId!, action: 'CREATE', entityType: 'Product', entityId: product._id, metadata: { name: product.name } });
     res.status(201).json(product);
   } catch (error) {
     next(error);
@@ -33,18 +36,20 @@ export const findById = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const update = async (req: Request, res: Response, next: NextFunction) => {
+export const update = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const product = await productService.update(req.params.id as string, req.body);
+    await logAction({ userId: req.userId!, action: 'UPDATE', entityType: 'Product', entityId: product._id, metadata: { name: product.name } });
     res.json(product);
   } catch (error) {
     next(error);
   }
 };
 
-export const remove = async (req: Request, res: Response, next: NextFunction) => {
+export const remove = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await productService.softDelete(req.params.id as string);
+    await logAction({ userId: req.userId!, action: 'DELETE', entityType: 'Product', entityId: req.params.id as string });
     res.status(204).send();
   } catch (error) {
     next(error);

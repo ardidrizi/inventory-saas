@@ -1,15 +1,19 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const navItems = [
   { path: '/', label: '📊 Dashboard' },
   { path: '/products', label: '📦 Products' },
   { path: '/orders', label: '🛒 Orders' },
+  { path: '/users', label: '👥 Users', adminOnly: true },
+  { path: '/audit', label: '📋 Audit Logs', adminOnly: true },
 ];
 
 const Layout: React.FC = () => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,7 +29,9 @@ const Layout: React.FC = () => {
           <h2 className="text-lg font-semibold">📦 Inventory SaaS</h2>
         </div>
         <div className="flex flex-1 flex-col py-2">
-          {navItems.map((item) => (
+          {navItems
+            .filter((item) => !item.adminOnly || user?.role === 'admin')
+            .map((item) => (
             <Link
               key={item.path}
               to={item.path}
@@ -40,7 +46,16 @@ const Layout: React.FC = () => {
           ))}
         </div>
         <div className="border-t border-slate-700 px-5 py-4">
-          <p className="text-sm">{user?.name}</p>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm">{user?.name}</p>
+            <button
+              onClick={toggleTheme}
+              className="cursor-pointer rounded-md bg-slate-800 px-2 py-1 text-sm transition-colors hover:bg-slate-700"
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+          </div>
           <p className="mb-3 text-xs text-slate-400">{user?.role}</p>
           <button
             onClick={handleLogout}
@@ -50,7 +65,7 @@ const Layout: React.FC = () => {
           </button>
         </div>
       </nav>
-      <main className="flex-1 overflow-auto bg-gray-50 p-8">
+      <main className="flex-1 overflow-auto bg-gray-50 p-8 dark:bg-gray-900">
         <Outlet />
       </main>
     </div>
