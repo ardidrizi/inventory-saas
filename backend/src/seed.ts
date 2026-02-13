@@ -1,12 +1,8 @@
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import User from './models/User';
 import Product from './models/Product';
 import Order from './models/Order';
-
-dotenv.config({ path: '../.env' });
-
-const MONGO_URI = process.env.MONGO_URI ?? 'mongodb://localhost:27017/inventory';
+import { env } from './config/env';
 
 const users = [
   { name: 'Admin User', email: 'admin@demo.com', password: 'admin123', role: 'admin' },
@@ -30,7 +26,7 @@ const products = [
 
 const seed = async () => {
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(env.MONGODB_URI);
     console.log('Connected to MongoDB');
 
     // Clear existing data
