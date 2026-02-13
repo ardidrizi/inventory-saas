@@ -19,60 +19,38 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <nav
-        style={{
-          width: 220,
-          background: '#1a1a2e',
-          color: '#fff',
-          padding: '20px 0',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div
-          style={{
-            padding: '0 20px 20px',
-            borderBottom: '1px solid #333',
-            marginBottom: 10,
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: 18 }}>📦 Inventory SaaS</h2>
+    <div className="flex min-h-screen">
+      <nav className="flex w-56 flex-col bg-slate-900 text-white">
+        <div className="border-b border-slate-700 px-5 py-5">
+          <h2 className="text-lg font-semibold">📦 Inventory SaaS</h2>
         </div>
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            style={{
-              padding: '12px 20px',
-              color: location.pathname === item.path ? '#4fc3f7' : '#ccc',
-              textDecoration: 'none',
-              background: location.pathname === item.path ? '#16213e' : 'transparent',
-            }}
-          >
-            {item.label}
-          </Link>
-        ))}
-        <div style={{ marginTop: 'auto', padding: 20, borderTop: '1px solid #333' }}>
-          <div style={{ fontSize: 13, marginBottom: 4 }}>{user?.name}</div>
-          <div style={{ fontSize: 11, color: '#999', marginBottom: 10 }}>{user?.role}</div>
+        <div className="flex flex-1 flex-col py-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`px-5 py-3 text-sm transition-colors ${
+                location.pathname === item.path
+                  ? 'bg-slate-800 text-sky-400'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+        <div className="border-t border-slate-700 px-5 py-4">
+          <p className="text-sm">{user?.name}</p>
+          <p className="mb-3 text-xs text-slate-400">{user?.role}</p>
           <button
             onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: 8,
-              background: '#e74c3c',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 4,
-              cursor: 'pointer',
-            }}
+            className="w-full cursor-pointer rounded bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
           >
             Logout
           </button>
         </div>
       </nav>
-      <main style={{ flex: 1, padding: 30, background: '#f5f6fa', overflow: 'auto' }}>
+      <main className="flex-1 overflow-auto bg-gray-50 p-8">
         <Outlet />
       </main>
     </div>
