@@ -26,7 +26,7 @@ A full-stack SaaS **Inventory and Order Management System** built with Node.js, 
 ### Prerequisites
 
 - **Node.js** >= 18
-- **MongoDB** running locally on port 27017
+- **Docker** + **Docker Compose** (for local replica set setup with transactions)
 
 ### Installation
 
@@ -49,8 +49,25 @@ cp .env.example .env
 | Variable     | Description                  | Default                                    |
 |--------------|------------------------------|--------------------------------------------|
 | `PORT`       | Backend server port          | `4000`                                     |
-| `MONGO_URI`  | MongoDB connection string    | `mongodb://localhost:27017/inventory-SAAS`  |
+| `MONGO_URI`  | MongoDB connection string    | `mongodb://localhost:27017/inventory-SAAS?replicaSet=rs0`  |
 | `JWT_SECRET` | Secret key for JWT signing   | *(set your own)*                            |
+
+### Running with Docker Compose (Replica Set for Transactions)
+
+```bash
+docker compose up --build
+```
+
+This starts:
+- `mongo` as a single-node replica set (`rs0`)
+- `mongo-init` to initialize the replica set once
+- `backend` with `MONGO_URI=mongodb://mongo:27017/inventory?replicaSet=rs0`
+- `frontend` unchanged
+
+After startup:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:5000`
+- Order creation works locally with MongoDB transactions enabled.
 
 ### Running the App
 
