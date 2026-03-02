@@ -4,7 +4,7 @@ import { env } from './config/env';
 
 const startServer = async () => {
   try {
-    await mongoose.connect(env.MONGODB_URI);
+    await mongoose.connect(env.MONGO_URI);
     console.log('Connected to MongoDB');
     app.listen(env.PORT, () => {
       console.log(`Server running on port ${env.PORT}`);
