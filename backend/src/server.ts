@@ -1,6 +1,14 @@
+import path from 'path';
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import app from './app';
-import { env } from './config/env';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+console.info(`JWT_SECRET present: ${Boolean(process.env.JWT_SECRET)}`);
+console.info(`OPENAI_API_KEY present: ${Boolean(process.env.OPENAI_API_KEY)}`);
+
+const { default: app } = require('./app') as { default: import('./app').default };
+const { env } = require('./config/env') as typeof import('./config/env');
 
 const startServer = async () => {
   try {
