@@ -6,7 +6,7 @@ const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(4000),
-    MONGO_URI: z.string({ required_error: 'MONGO_URI is required' }).trim().min(1).optional(),
+    MONGO_URI: z.string().trim().min(1).optional(),
     MONGODB_URI: z.string().trim().min(1).optional(),
     JWT_SECRET: z
       .string({ required_error: 'JWT_SECRET is required' })
@@ -37,7 +37,7 @@ export type Env = z.infer<typeof envSchema> & {
   MONGO_URI: string;
 };
 
-export const env: Env = {
+export const env: Env = Object.freeze({
   ...parsed.data,
   MONGO_URI: parsed.data.MONGO_URI ?? parsed.data.MONGODB_URI!,
-};
+});
