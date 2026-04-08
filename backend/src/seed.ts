@@ -2,8 +2,11 @@ import mongoose from 'mongoose';
 import User from './models/User';
 import Product from './models/Product';
 import Order from './models/Order';
+import './config/loadEnv';
+import { existsSync } from 'node:fs';
 
 const DOCKER_MONGO_URI = 'mongodb://mongo:27017/inventory?replicaSet=rs0';
+const LOCAL_MONGO_URI = 'mongodb://localhost:27018/inventory?replicaSet=rs0';
 
 const resolveMongoUri = () => {
   const explicitUri =
@@ -13,7 +16,8 @@ const resolveMongoUri = () => {
     return explicitUri;
   }
 
-  return DOCKER_MONGO_URI;
+  const isDockerRuntime = existsSync('/.dockerenv');
+  return isDockerRuntime ? DOCKER_MONGO_URI : LOCAL_MONGO_URI;
 };
 
 const users = [
