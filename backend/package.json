@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "preseed": "npm run build",
     "seed": "node dist/seed.js",
     "seed:dev": "tsx src/seed.ts",
     "build": "tsc",
