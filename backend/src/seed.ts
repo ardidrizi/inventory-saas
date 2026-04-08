@@ -1,8 +1,12 @@
+import path from 'path';
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import User from './models/User';
 import Product from './models/Product';
 import Order from './models/Order';
-import { env } from './config/env';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+const { env } = require('./config/env');
 
 const users = [
   { name: 'Admin User', email: 'admin@demo.com', password: 'admin123', role: 'admin' },
