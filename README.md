@@ -1,15 +1,53 @@
 # Inventory SaaS
 
-A full-stack SaaS **Inventory and Order Management System** built with Node.js, Express, React, TypeScript, and MongoDB.
+A full-stack **inventory management SaaS** with a responsive admin UI, REST API backend, and an AI-powered insights dashboard built with Node.js, Express, React, TypeScript, and MongoDB.
 
 ## Features
 
-- **Authentication** — JWT-based auth with role-based access control (admin / manager)
-- **Product Management** — Full CRUD with soft delete and stock tracking
+- **Inventory Management** — Full CRUD with soft delete and stock tracking
 - **Order Management** — Order creation with automatic stock reduction and status workflow (pending → confirmed → shipped → delivered / cancelled)
+- **Authentication & Role-Based Access** — JWT auth with admin / manager permissions
+- **AI-Powered Insights Dashboard** — Actionable insights from inventory and order data
+- **Responsive Admin UI** — Modern React dashboard for operational workflows
+- **REST API Backend** — Express + TypeScript API for auth, products, orders, dashboard, and AI insights
 - **Dashboard Analytics** — Revenue stats, top products, and order trends with interactive charts
 - **Input Validation** — Zod schema validation on all endpoints
 - **Security** — Helmet headers, bcrypt password hashing, CORS configuration
+
+## AI Insights
+
+The admin dashboard includes an AI-powered insights feature that analyzes inventory and order data to generate concise, actionable recommendations for operations teams.
+
+### Features
+
+- Business summary of inventory and sales
+- Detection of low-stock and out-of-stock risks
+- Opportunities based on product performance
+- Actionable recommendations for restocking and optimization
+
+### Technical Highlights
+
+- OpenAI API integration
+- Fallback mode when AI is unavailable
+- 5-minute backend caching
+- `generatedAt` timestamp support
+- Admin-only protected access
+- Tested with Vitest and Supertest
+
+### Example Output
+
+```json
+{
+  "summary": "Inventory is stable overall, with a few products requiring immediate replenishment.",
+  "risks": ["3 products are out of stock", "6 products are low on stock"],
+  "opportunities": ["Top-selling category shows strong weekly demand momentum"],
+  "actions": [
+    "Reorder out-of-stock SKUs today",
+    "Increase safety stock for fast-moving items",
+    "Review weekly reorder thresholds by category"
+  ]
+}
+```
 
 ## Tech Stack
 

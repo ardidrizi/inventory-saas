@@ -8,6 +8,15 @@ const pageCard = 'rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
+const formatGeneratedAt = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'an unknown time';
+  }
+
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
 const normalizeInsightErrorMessage = (message?: string) => {
   if (!message) return 'Failed to generate AI insights';
 
@@ -132,6 +141,11 @@ const AIInsightsPage: React.FC = () => {
 
           <section className={pageCard}>
             <h2 className="mb-2 text-base font-semibold text-gray-800 dark:text-gray-100">Executive Summary</h2>
+            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+              {data.cached
+                ? `Showing cached insights from ${formatGeneratedAt(data.generatedAt)}`
+                : `Showing fresh insights generated at ${formatGeneratedAt(data.generatedAt)}`}
+            </p>
             <p className="rounded-lg bg-gray-50 px-4 py-3 text-sm leading-relaxed text-gray-700 dark:bg-gray-900/60 dark:text-gray-200">
               {data.insights.summary}
             </p>

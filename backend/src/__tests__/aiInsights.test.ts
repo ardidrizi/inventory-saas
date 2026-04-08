@@ -80,6 +80,8 @@ describe('AI Insights API', () => {
         categorySummary: [],
       },
       fallback: false,
+      cached: false,
+      generatedAt: new Date().toISOString(),
     });
 
     const res = await request(app)
@@ -109,6 +111,8 @@ describe('AI Insights API', () => {
         categorySummary: expect.any(Array),
       },
       fallback: expect.any(Boolean),
+      cached: expect.any(Boolean),
+      generatedAt: expect.any(String),
     });
   });
 
