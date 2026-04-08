@@ -51,6 +51,14 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('Failed to start server', error);
+    if (error instanceof Error && /ECONNREFUSED|ReplicaSetNoPrimary/i.test(error.message)) {
+      console.error(
+        '[Mongo] Could not connect to MongoDB. For local development run: docker compose up -d mongo mongo-init',
+      );
+      console.error(
+        '[Mongo] Then verify with: docker compose ps (mongo should be healthy/running on localhost:27018).',
+      );
+    }
     process.exit(1);
   }
 };
