@@ -100,9 +100,22 @@ This starts:
 - `mongo` as a single-node replica set (`rs0`) on host port `27018` (to avoid local `27017` conflicts)
 - `mongo-init` that initializes/reconfigures the replica set member as `localhost:27018`
 
+If you previously ran an older Mongo replica set config, reset once before startup:
+
+```bash
+docker compose down -v
+docker compose up -d mongo mongo-init
+```
+
 After startup:
 - MongoDB: `mongodb://localhost:27018/inventory?replicaSet=rs0`
 - Order creation works locally with MongoDB transactions enabled from a locally running backend.
+
+Verify replica set is PRIMARY:
+
+```bash
+docker compose exec mongo mongosh --quiet --eval "rs.status().members.map(m => ({name: m.name, stateStr: m.stateStr}))"
+```
 
 ### Running the App
 
