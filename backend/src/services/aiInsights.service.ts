@@ -265,16 +265,28 @@ const buildStats = async (): Promise<AIInsightsStats> => {
 };
 
 const loadOpenAiClient = async (): Promise<OpenAIChatClient> => {
-  if (!env.OPENAI_API_KEY) {
-    throw createHttpError('OPENAI_API_KEY is not configured on the server', 500);
+  const apiKey = env.OPENAI_API_KEY;
+  const hasApiKey = Boolean(apiKey);
+  console.info(`OPENAI_API_KEY present: ${hasApiKey}`);
+
+  if (!apiKey) {
+    throw createHttpError('OPENAI_API_KEY is missing', 500);
+  }
+
+  let OpenAI: unknown;
+  try {
+    const openAiModule = await import('openai');
+    OpenAI = openAiModule.default;
+  } catch {
+    throw createHttpError('OpenAI package import failed', 500);
   }
 
   try {
-    const module = await import('openai');
-    const OpenAI = module.default;
-    return new OpenAI({ apiKey: env.OPENAI_API_KEY }) as OpenAIChatClient;
+    return new (OpenAI as new (config: { apiKey: string }) => OpenAIChatClient)({
+      apiKey,
+    });
   } catch {
-    throw createHttpError('OpenAI SDK failed to initialize', 500);
+    throw createHttpError('OpenAI client initialization failed', 500);
   }
 };
 

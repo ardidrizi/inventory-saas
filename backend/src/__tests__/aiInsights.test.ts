@@ -125,7 +125,7 @@ describe('AI Insights API', () => {
 
   it('should handle missing OPENAI_API_KEY correctly', async () => {
     vi.spyOn(aiInsightsService, 'generateInsights').mockRejectedValue(
-      Object.assign(new Error('OPENAI_API_KEY is not configured on the server'), { statusCode: 500 }),
+      Object.assign(new Error('OPENAI_API_KEY is missing'), { statusCode: 500 }),
     );
 
     const res = await request(app)
@@ -133,6 +133,6 @@ describe('AI Insights API', () => {
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(500);
-    expect(res.body.message).toMatch(/OPENAI_API_KEY is not configured on the server/i);
+    expect(res.body.message).toMatch(/OPENAI_API_KEY is missing/i);
   });
 });
