@@ -81,6 +81,7 @@ describe('AI Insights API', () => {
       },
       fallback: false,
       cached: false,
+      generatedAt: new Date().toISOString(),
     });
 
     const res = await request(app)
@@ -111,6 +112,7 @@ describe('AI Insights API', () => {
       },
       fallback: expect.any(Boolean),
       cached: expect.any(Boolean),
+      generatedAt: expect.any(String),
     });
   });
 

@@ -358,6 +358,7 @@ interface InsightsResponse {
   stats: AIInsightsStats;
   fallback: boolean;
   cached: boolean;
+  generatedAt: string;
 }
 
 let insightsCache: { expiresAt: number; payload: Omit<InsightsResponse, 'cached'> } | null = null;
@@ -378,14 +379,21 @@ const getCachedInsights = (): InsightsResponse | null => {
   };
 };
 
-const setInsightsCache = (payload: Omit<InsightsResponse, 'cached'>): InsightsResponse => {
+const setInsightsCache = (
+  payload: Omit<InsightsResponse, 'cached' | 'generatedAt'>,
+): InsightsResponse => {
+  const generatedAt = new Date().toISOString();
   insightsCache = {
-    payload,
+    payload: {
+      ...payload,
+      generatedAt,
+    },
     expiresAt: Date.now() + INSIGHTS_CACHE_TTL_MS,
   };
 
   return {
     ...payload,
+    generatedAt,
     cached: false,
   };
 };
