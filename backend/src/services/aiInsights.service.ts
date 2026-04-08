@@ -60,6 +60,7 @@ interface OpenAIChatClient {
 
 const LOW_STOCK_THRESHOLD = 10;
 const TREND_WINDOW_DAYS = 7;
+const INSIGHTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const createHttpError = (message: string, statusCode: number) =>
   Object.assign(new Error(message), { statusCode });
@@ -351,16 +352,67 @@ const INSIGHTS_JSON_SCHEMA = {
   },
 };
 
+interface InsightsResponse {
+  success: true;
+  insights: AIInsightsResult;
+  stats: AIInsightsStats;
+  fallback: boolean;
+  cached: boolean;
+  generatedAt: string;
+}
+
+let insightsCache: { expiresAt: number; payload: Omit<InsightsResponse, 'cached'> } | null = null;
+
+const getCachedInsights = (): InsightsResponse | null => {
+  if (!insightsCache) {
+    return null;
+  }
+
+  if (Date.now() >= insightsCache.expiresAt) {
+    insightsCache = null;
+    return null;
+  }
+
+  return {
+    ...insightsCache.payload,
+    cached: true,
+  };
+};
+
+const setInsightsCache = (
+  payload: Omit<InsightsResponse, 'cached' | 'generatedAt'>,
+): InsightsResponse => {
+  const generatedAt = new Date().toISOString();
+  insightsCache = {
+    payload: {
+      ...payload,
+      generatedAt,
+    },
+    expiresAt: Date.now() + INSIGHTS_CACHE_TTL_MS,
+  };
+
+  return {
+    ...payload,
+    generatedAt,
+    cached: false,
+  };
+};
+
 export const generateInsights = async () => {
+  const cachedInsights = getCachedInsights();
+  if (cachedInsights) {
+    return cachedInsights;
+  }
+
   const stats = await buildStats();
 
   if (stats.totals.products === 0 && stats.totals.orders === 0) {
-    return {
+    return setInsightsCache({
       success: true,
       insights: buildFallbackInsights(stats),
       stats,
       fallback: true,
-    };
+    });
   }
 
   try {
@@ -390,12 +442,12 @@ export const generateInsights = async () => {
       ? parseAIInsightsResponse(content, stats)
       : { insights: buildFallbackInsights(stats), usedFallback: true };
 
-    return {
+    return setInsightsCache({
       success: true,
       insights: parsed.insights,
       stats,
       fallback: parsed.usedFallback,
-    };
+    });
   } catch (error) {
     const details = getOpenAIErrorDetails(error);
     console.error('OpenAI request failed while generating AI insights', details);
@@ -407,11 +459,11 @@ export const generateInsights = async () => {
       console.warn('OpenAI unavailable or request failed; returning locally generated fallback insights');
     }
 
-    return {
+    return setInsightsCache({
       success: true,
       insights: fallbackInsights,
       stats,
       fallback: true,
-    };
+    });
   }
 };

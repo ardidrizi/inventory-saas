@@ -45,6 +45,8 @@ export interface GenerateAIInsightsResponse {
   insights: AIInsights;
   stats: AIInsightsStats;
   fallback: boolean;
+  cached: boolean;
+  generatedAt: string;
 }
 
 export const generateInsights = () =>
