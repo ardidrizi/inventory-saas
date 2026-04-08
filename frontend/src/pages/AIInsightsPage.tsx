@@ -112,6 +112,12 @@ const AIInsightsPage: React.FC = () => {
 
       {data && (
         <>
+          {data.fallback && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-100">
+              AI-generated insights are temporarily unavailable. Showing locally generated insights instead.
+            </div>
+          )}
+
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {statCards.map((card) => (
               <div
