@@ -4,7 +4,6 @@ import Order from '../models/Order';
 import { env } from '../config/env';
 
 interface ProductStockSummary {
-  _id: string;
   name: string;
   sku: string;
   category: string;
@@ -24,7 +23,7 @@ interface CategorySummary {
   inventoryValue: number;
 }
 
-export interface InsightsStats {
+export interface AIInsightsStats {
   totals: {
     products: number;
     lowStockProducts: number;
@@ -38,7 +37,7 @@ export interface InsightsStats {
   categorySummary: CategorySummary[];
 }
 
-const insightsSchema = z
+const aiInsightsSchema = z
   .object({
     summary: z.string().min(1),
     risks: z.array(z.string()),
@@ -47,7 +46,7 @@ const insightsSchema = z
   })
   .strict();
 
-type InsightsResult = z.infer<typeof insightsSchema>;
+type AIInsightsResult = z.infer<typeof aiInsightsSchema>;
 
 interface OpenAIChatClient {
   chat: {
@@ -67,7 +66,19 @@ const createHttpError = (message: string, statusCode: number) =>
 
 const toIsoDay = (date: Date): string => date.toISOString().slice(0, 10);
 
-const buildFallbackInsights = (stats: InsightsStats): InsightsResult => {
+const toProductStockSummary = (product: {
+  name: string;
+  sku: string;
+  category: string;
+  quantity: number;
+}): ProductStockSummary => ({
+  name: product.name,
+  sku: product.sku,
+  category: product.category,
+  quantity: product.quantity,
+});
+
+const buildFallbackInsights = (stats: AIInsightsStats): AIInsightsResult => {
   const hasProducts = stats.totals.products > 0;
   const hasOrders = stats.totals.orders > 0;
 
@@ -114,10 +125,11 @@ const buildFallbackInsights = (stats: InsightsStats): InsightsResult => {
   };
 };
 
-const parseInsightsResponse = (content: string, stats: InsightsStats): InsightsResult => {
+const parseAIInsightsResponse = (content: string, stats: AIInsightsStats): AIInsightsResult => {
   try {
     const parsed = JSON.parse(content) as unknown;
-    const validated = insightsSchema.safeParse(parsed);
+    const validated = aiInsightsSchema.safeParse(parsed);
+
     if (!validated.success) {
       return buildFallbackInsights(stats);
     }
@@ -133,7 +145,7 @@ const parseInsightsResponse = (content: string, stats: InsightsStats): InsightsR
   }
 };
 
-const buildStats = async (): Promise<InsightsStats> => {
+const buildStats = async (): Promise<AIInsightsStats> => {
   try {
     const trendStartDate = new Date();
     trendStartDate.setDate(trendStartDate.getDate() - (TREND_WINDOW_DAYS - 1));
@@ -204,12 +216,12 @@ const buildStats = async (): Promise<InsightsStats> => {
     for (let offset = TREND_WINDOW_DAYS - 1; offset >= 0; offset -= 1) {
       const date = new Date();
       date.setDate(date.getDate() - offset);
-      const dayKey = toIsoDay(date);
-      const dayValue = trendMap.get(dayKey);
+      const dateKey = toIsoDay(date);
+      const trend = trendMap.get(dateKey);
       recentOrderTrend.push({
-        date: dayKey,
-        orders: dayValue?.orders ?? 0,
-        revenue: dayValue?.revenue ?? 0,
+        date: dateKey,
+        orders: trend?.orders ?? 0,
+        revenue: trend?.revenue ?? 0,
       });
     }
 
@@ -221,20 +233,22 @@ const buildStats = async (): Promise<InsightsStats> => {
         orders: totalOrders,
         revenue: totalRevenueAgg[0]?.total ?? 0,
       },
-      topProductsByStock: topProductsByStock.map((p) => ({
-        _id: String(p._id),
-        name: p.name,
-        sku: p.sku,
-        category: p.category,
-        quantity: p.quantity,
-      })),
-      bottomProductsByStock: bottomProductsByStock.map((p) => ({
-        _id: String(p._id),
-        name: p.name,
-        sku: p.sku,
-        category: p.category,
-        quantity: p.quantity,
-      })),
+      topProductsByStock: topProductsByStock.map((product) =>
+        toProductStockSummary({
+          name: product.name,
+          sku: product.sku,
+          category: product.category,
+          quantity: product.quantity,
+        }),
+      ),
+      bottomProductsByStock: bottomProductsByStock.map((product) =>
+        toProductStockSummary({
+          name: product.name,
+          sku: product.sku,
+          category: product.category,
+          quantity: product.quantity,
+        }),
+      ),
       recentOrderTrend,
       categorySummary: categorySummaryRaw
         .filter((item) => typeof item._id === 'string' && item._id.trim().length > 0)
@@ -246,13 +260,13 @@ const buildStats = async (): Promise<InsightsStats> => {
         })),
     };
   } catch {
-    throw createHttpError('Failed to build inventory summary from database', 500);
+    throw createHttpError('Failed to build AI insights statistics', 500);
   }
 };
 
 const loadOpenAiClient = async (): Promise<OpenAIChatClient> => {
   if (!env.OPENAI_API_KEY) {
-    throw createHttpError('OPENAI_API_KEY is not configured', 500);
+    throw createHttpError('OPENAI_API_KEY is not configured on the server', 500);
   }
 
   try {
@@ -260,18 +274,17 @@ const loadOpenAiClient = async (): Promise<OpenAIChatClient> => {
     const OpenAI = module.default;
     return new OpenAI({ apiKey: env.OPENAI_API_KEY }) as OpenAIChatClient;
   } catch {
-    throw createHttpError('OpenAI SDK is not installed or failed to initialize', 500);
+    throw createHttpError('OpenAI SDK failed to initialize', 500);
   }
 };
 
-const buildPrompt = (stats: InsightsStats) => {
-  return [
+const buildPrompt = (stats: AIInsightsStats) =>
+  [
     'You are an operations analyst for an inventory SaaS business.',
-    'Use only the compact JSON input.',
-    'Focus on: short business summary, low stock risks, restock suggestions, product performance observations, and 3 actionable recommendations.',
+    'Use only the compact JSON input and avoid assumptions not grounded in the data.',
+    'Focus on: short business summary, low stock risks, restock suggestions, product performance observations, and exactly 3 actionable recommendations.',
     `Input JSON: ${JSON.stringify(stats)}`,
   ].join('\n');
-};
 
 const INSIGHTS_JSON_SCHEMA = {
   name: 'inventory_insights',
@@ -324,7 +337,7 @@ export const generateInsights = async () => {
     });
 
     const content = response.choices?.[0]?.message?.content;
-    const insights = content ? parseInsightsResponse(content, stats) : buildFallbackInsights(stats);
+    const insights = content ? parseAIInsightsResponse(content, stats) : buildFallbackInsights(stats);
 
     return {
       success: true,
@@ -332,6 +345,6 @@ export const generateInsights = async () => {
       stats,
     };
   } catch {
-    throw createHttpError('Failed to generate AI insights', 502);
+    throw createHttpError('Failed to generate AI insights from OpenAI', 502);
   }
 };

@@ -16,14 +16,12 @@ export interface AIInsightsStats {
     revenue: number;
   };
   topProductsByStock: Array<{
-    _id: string;
     name: string;
     sku: string;
     category: string;
     quantity: number;
   }>;
   bottomProductsByStock: Array<{
-    _id: string;
     name: string;
     sku: string;
     category: string;
