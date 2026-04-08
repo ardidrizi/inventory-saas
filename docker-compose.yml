@@ -1,10 +1,10 @@
 services:
   mongo:
     image: mongo:7
-    command: mongod --replSet rs0 --bind_ip_all
+    command: mongod --replSet rs0 --bind_ip_all --port 27018
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "27018:27018"
     volumes:
       - mongo-data:/data/db
     networks:
@@ -16,8 +16,8 @@ services:
       - mongo
     restart: "no"
     command: >
-      bash -c "until mongosh --host mongo:27017 --eval 'db.adminCommand({ ping: 1 })' >/dev/null 2>&1; do sleep 1; done &&
-      mongosh --host mongo:27017 --eval \"try{rs.status()}catch(e){rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]})}\""
+      bash -c "until mongosh --host mongo:27018 --eval 'db.adminCommand({ ping: 1 })' >/dev/null 2>&1; do sleep 1; done &&
+      mongosh --host mongo:27018 --quiet --eval \"const cfg={_id:'rs0',members:[{_id:0,host:'localhost:27018'}]};try{const current=rs.status().members?.[0]?.name;if(current!==cfg.members[0].host){rs.reconfig(cfg,{force:true});print('Replica set reconfigured to localhost:27018')}else{print('Replica set already configured')}}catch(e){rs.initiate(cfg);print('Replica set initiated on localhost:27018')}\""
     networks:
       - app-network
 
@@ -32,7 +32,7 @@ services:
       - .env
     environment:
       - PORT=5000
-      - MONGO_URI=mongodb://mongo:27017/inventory?replicaSet=rs0
+      - MONGO_URI=mongodb://mongo:27018/inventory?replicaSet=rs0
     depends_on:
       - mongo
       - mongo-init
