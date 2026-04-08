@@ -1,7 +1,7 @@
 services:
   mongo:
     image: mongo:7
-    command: mongod --replSet rs0 --bind_ip_all --port 27018
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
     restart: unless-stopped
     ports:
       - "27018:27017"
@@ -17,7 +17,7 @@ services:
     restart: "no"
     command: >
       bash -c "until mongosh --host mongo:27017 --eval 'db.adminCommand({ ping: 1 })' >/dev/null 2>&1; do sleep 1; done &&
-      mongosh --host mongo:27017 --quiet --eval \"const desiredHost='localhost:27018';const desiredCfg={_id:'rs0',members:[{_id:0,host:desiredHost}]};const ensureConfig=()=>{const currentHost=rs.conf().members?.[0]?.host;if(currentHost!==desiredHost){rs.reconfig(desiredCfg,{force:true});print('Replica set reconfigured to '+desiredHost)}else{print('Replica set already configured for '+desiredHost)}};try{rs.status();ensureConfig()}catch(e){rs.initiate(desiredCfg);print('Replica set initiated on '+desiredHost)}\""
+      mongosh --host mongo:27017 --quiet --eval \"const desiredHost='mongo:27017';const desiredCfg={_id:'rs0',members:[{_id:0,host:desiredHost}]};const ensureConfig=()=>{const currentHost=rs.conf().members?.[0]?.host;if(currentHost!==desiredHost){rs.reconfig(desiredCfg,{force:true});print('Replica set reconfigured to '+desiredHost)}else{print('Replica set already configured for '+desiredHost)}};try{rs.status();ensureConfig()}catch(e){rs.initiate(desiredCfg);print('Replica set initiated on '+desiredHost)}\""
     networks:
       - app-network
 
@@ -32,7 +32,7 @@ services:
       - .env
     environment:
       - PORT=5000
-      - MONGO_URI=mongodb://mongo:27018/inventory?replicaSet=rs0
+      - MONGO_URI=mongodb://mongo:27017/inventory?replicaSet=rs0
     depends_on:
       - mongo
       - mongo-init
