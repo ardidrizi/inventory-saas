@@ -16,25 +16,42 @@ import { DashboardStats } from '../types';
 
 const COLORS = ['#2196f3', '#4caf50', '#ff9800', '#e91e63', '#9c27b0'];
 
+const defaultStats: DashboardStats = {
+  totalProducts: 0,
+  totalOrders: 0,
+  totalRevenue: 0,
+  lowStockProducts: 0,
+  userCount: 0,
+  recentOrders: [],
+  ordersByStatus: {},
+  revenueOverTime: [],
+};
+
 const DashboardPage: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     dashboardApi
       .getStats()
-      .then(setStats)
+            .then((data) =>
+        setStats({
+          ...defaultStats,
+          ...data,
+          ordersByStatus: data?.ordersByStatus ?? {},
+          revenueOverTime: data?.revenueOverTime ?? [],
+          recentOrders: data?.recentOrders ?? [],
+        })
+      )
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div>Loading dashboard...</div>;
-  if (!stats) return <div>Failed to load dashboard</div>;
-
   const statCards = [
     { label: 'Products', value: stats.totalProducts, color: '#2196f3' },
     { label: 'Orders', value: stats.totalOrders, color: '#4caf50' },
-    { label: 'Revenue', value: `$${stats.totalRevenue.toLocaleString()}`, color: '#ff9800' },
+    { label: 'Revenue', value: `$${(stats.totalRevenue ?? 0).toLocaleString()}`, color: '#ff9800' },
     { label: 'Low Stock', value: stats.lowStockProducts, color: '#e91e63' },
   ];
 
@@ -150,7 +167,7 @@ const DashboardPage: React.FC = () => {
               <tr key={order._id} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: 10 }}>{order.orderNumber}</td>
                 <td style={{ padding: 10 }}>{order.customer.name}</td>
-                <td style={{ padding: 10 }}>${order.totalAmount.toLocaleString()}</td>
+                <td style={{ padding: 10 }}>${(order.totalAmount ?? 0).toLocaleString()}</td>
                 <td style={{ padding: 10 }}>
                   <span
                     style={{
