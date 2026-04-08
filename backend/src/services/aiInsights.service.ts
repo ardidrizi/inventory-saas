@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import Product from '../models/Product';
 import Order from '../models/Order';
 import { env } from '../config/env';
@@ -37,12 +38,16 @@ export interface InsightsStats {
   categorySummary: CategorySummary[];
 }
 
-interface InsightsResult {
-  summary: string;
-  risks: string[];
-  opportunities: string[];
-  actions: string[];
-}
+const insightsSchema = z
+  .object({
+    summary: z.string().min(1),
+    risks: z.array(z.string()),
+    opportunities: z.array(z.string()),
+    actions: z.array(z.string()),
+  })
+  .strict();
+
+type InsightsResult = z.infer<typeof insightsSchema>;
 
 interface OpenAIChatClient {
   chat: {
@@ -55,49 +60,83 @@ interface OpenAIChatClient {
 }
 
 const LOW_STOCK_THRESHOLD = 10;
+const TREND_WINDOW_DAYS = 7;
 
 const createHttpError = (message: string, statusCode: number) =>
   Object.assign(new Error(message), { statusCode });
 
-const parseInsightsResponse = (content: string): InsightsResult => {
-  let parsed: unknown;
+const toIsoDay = (date: Date): string => date.toISOString().slice(0, 10);
 
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    throw createHttpError('AI response was not valid JSON', 502);
+const buildFallbackInsights = (stats: InsightsStats): InsightsResult => {
+  const hasProducts = stats.totals.products > 0;
+  const hasOrders = stats.totals.orders > 0;
+
+  if (!hasProducts && !hasOrders) {
+    return {
+      summary:
+        'No inventory or order history is available yet. Add products and record first orders to unlock meaningful AI insights.',
+      risks: ['No operating data yet; forecasting and risk detection are currently limited.'],
+      opportunities: ['Initialize product catalog and baseline stock levels to start trend tracking.'],
+      actions: [
+        'Create core product records with categories and starting quantities.',
+        'Start capturing orders to generate demand and revenue trends.',
+        'Review low-stock thresholds for each category once data accumulates.',
+      ],
+    };
   }
 
-  if (!parsed || typeof parsed !== 'object') {
-    throw createHttpError('AI response was malformed', 502);
+  const risks: string[] = [];
+  if (stats.totals.outOfStockProducts > 0) {
+    risks.push(`${stats.totals.outOfStockProducts} products are currently out of stock.`);
+  }
+  if (stats.totals.lowStockProducts > 0) {
+    risks.push(`${stats.totals.lowStockProducts} products are low on stock (≤ ${LOW_STOCK_THRESHOLD}).`);
   }
 
-  const result = parsed as Record<string, unknown>;
-
-  const asStringArray = (value: unknown): string[] =>
-    Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
-
-  const summary = typeof result.summary === 'string' ? result.summary.trim() : '';
-  const risks = asStringArray(result.risks);
-  const opportunities = asStringArray(result.opportunities);
-  const actions = asStringArray(result.actions);
-
-  if (!summary) {
-    throw createHttpError('AI response missing summary', 502);
-  }
+  const topProduct = stats.topProductsByStock[0];
+  const firstCategory = stats.categorySummary[0];
 
   return {
-    summary,
-    risks,
-    opportunities,
-    actions,
+    summary:
+      `Inventory contains ${stats.totals.products} products and ${stats.totals.orders} orders with total revenue of $${stats.totals.revenue.toFixed(2)}.` +
+      (topProduct ? ` Highest-stock item is ${topProduct.name} (${topProduct.quantity} units).` : ''),
+    risks: risks.length > 0 ? risks : ['No immediate inventory risk detected from current stock levels.'],
+    opportunities: [
+      firstCategory
+        ? `${firstCategory.category} is the largest category by inventory value at $${firstCategory.inventoryValue.toFixed(2)}.`
+        : 'Category-level opportunities will improve as more categorized products are added.',
+    ],
+    actions: [
+      'Prioritize replenishment for out-of-stock and low-stock products.',
+      'Review bottom-stock products for reorder timing and demand alignment.',
+      'Track weekly order and revenue trend changes to adjust purchasing decisions.',
+    ],
   };
+};
+
+const parseInsightsResponse = (content: string, stats: InsightsStats): InsightsResult => {
+  try {
+    const parsed = JSON.parse(content) as unknown;
+    const validated = insightsSchema.safeParse(parsed);
+    if (!validated.success) {
+      return buildFallbackInsights(stats);
+    }
+
+    return {
+      summary: validated.data.summary.trim(),
+      risks: validated.data.risks,
+      opportunities: validated.data.opportunities,
+      actions: validated.data.actions,
+    };
+  } catch {
+    return buildFallbackInsights(stats);
+  }
 };
 
 const buildStats = async (): Promise<InsightsStats> => {
   try {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const trendStartDate = new Date();
+    trendStartDate.setDate(trendStartDate.getDate() - (TREND_WINDOW_DAYS - 1));
 
     const [
       totalProducts,
@@ -127,7 +166,7 @@ const buildStats = async (): Promise<InsightsStats> => {
         { $group: { _id: null, total: { $sum: '$totalAmount' } } },
       ]),
       Order.aggregate([
-        { $match: { createdAt: { $gte: sevenDaysAgo } } },
+        { $match: { createdAt: { $gte: trendStartDate } } },
         {
           $group: {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -156,6 +195,24 @@ const buildStats = async (): Promise<InsightsStats> => {
       ]),
     ]);
 
+    const trendMap = new Map<string, { orders: number; revenue: number }>();
+    for (const point of recentOrderTrendRaw as Array<{ _id: string; orders: number; revenue: number }>) {
+      trendMap.set(point._id, { orders: point.orders, revenue: point.revenue });
+    }
+
+    const recentOrderTrend: RecentTrendPoint[] = [];
+    for (let offset = TREND_WINDOW_DAYS - 1; offset >= 0; offset -= 1) {
+      const date = new Date();
+      date.setDate(date.getDate() - offset);
+      const dayKey = toIsoDay(date);
+      const dayValue = trendMap.get(dayKey);
+      recentOrderTrend.push({
+        date: dayKey,
+        orders: dayValue?.orders ?? 0,
+        revenue: dayValue?.revenue ?? 0,
+      });
+    }
+
     return {
       totals: {
         products: totalProducts,
@@ -178,17 +235,15 @@ const buildStats = async (): Promise<InsightsStats> => {
         category: p.category,
         quantity: p.quantity,
       })),
-      recentOrderTrend: recentOrderTrendRaw.map((point) => ({
-        date: point._id,
-        orders: point.orders,
-        revenue: point.revenue,
-      })),
-      categorySummary: categorySummaryRaw.map((item) => ({
-        category: item._id,
-        products: item.products,
-        totalQuantity: item.totalQuantity,
-        inventoryValue: Number(item.inventoryValue.toFixed(2)),
-      })),
+      recentOrderTrend,
+      categorySummary: categorySummaryRaw
+        .filter((item) => typeof item._id === 'string' && item._id.trim().length > 0)
+        .map((item) => ({
+          category: item._id,
+          products: item.products,
+          totalQuantity: item.totalQuantity,
+          inventoryValue: Number(item.inventoryValue.toFixed(2)),
+        })),
     };
   } catch {
     throw createHttpError('Failed to build inventory summary from database', 500);
@@ -212,21 +267,39 @@ const loadOpenAiClient = async (): Promise<OpenAIChatClient> => {
 const buildPrompt = (stats: InsightsStats) => {
   return [
     'You are an operations analyst for an inventory SaaS business.',
-    'Using ONLY the compact JSON input, return a concise JSON object with this exact shape:',
-    '{"summary":"string","risks":["string"],"opportunities":["string"],"actions":["string"]}',
-    'Requirements:',
-    '- summary: 2-4 sentences business summary.',
-    '- risks: low stock and fulfillment risk bullets.',
-    '- opportunities: product performance and revenue observations.',
-    '- actions: exactly 3 actionable recommendations prioritized by impact.',
-    '- Do not include markdown or additional keys.',
-    '',
+    'Use only the compact JSON input.',
+    'Focus on: short business summary, low stock risks, restock suggestions, product performance observations, and 3 actionable recommendations.',
     `Input JSON: ${JSON.stringify(stats)}`,
   ].join('\n');
 };
 
+const INSIGHTS_JSON_SCHEMA = {
+  name: 'inventory_insights',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: {
+      summary: { type: 'string' },
+      risks: { type: 'array', items: { type: 'string' } },
+      opportunities: { type: 'array', items: { type: 'string' } },
+      actions: { type: 'array', items: { type: 'string' } },
+    },
+    required: ['summary', 'risks', 'opportunities', 'actions'],
+    additionalProperties: false,
+  },
+};
+
 export const generateInsights = async () => {
   const stats = await buildStats();
+
+  if (stats.totals.products === 0 && stats.totals.orders === 0) {
+    return {
+      success: true,
+      insights: buildFallbackInsights(stats),
+      stats,
+    };
+  }
+
   const client = await loadOpenAiClient();
 
   try {
@@ -237,33 +310,28 @@ export const generateInsights = async () => {
         {
           role: 'system',
           content:
-            'You are a precise inventory analytics assistant. Return valid JSON only with summary, risks, opportunities, and actions.',
+            'Return strict JSON that matches the provided schema. Do not include markdown or extra keys.',
         },
         {
           role: 'user',
           content: buildPrompt(stats),
         },
       ],
-      response_format: { type: 'json_object' },
+      response_format: {
+        type: 'json_schema',
+        json_schema: INSIGHTS_JSON_SCHEMA,
+      },
     });
 
     const content = response.choices?.[0]?.message?.content;
-    if (!content) {
-      throw createHttpError('OpenAI returned an empty response', 502);
-    }
-
-    const insights = parseInsightsResponse(content);
+    const insights = content ? parseInsightsResponse(content, stats) : buildFallbackInsights(stats);
 
     return {
       success: true,
       insights,
       stats,
     };
-  } catch (error) {
-    if ((error as { statusCode?: number }).statusCode) {
-      throw error;
-    }
-
+  } catch {
     throw createHttpError('Failed to generate AI insights', 502);
   }
 };
