@@ -79,6 +79,7 @@ describe('AI Insights API', () => {
         recentOrderTrend: [],
         categorySummary: [],
       },
+      fallback: false,
     });
 
     const res = await request(app)
@@ -107,6 +108,7 @@ describe('AI Insights API', () => {
         recentOrderTrend: expect.any(Array),
         categorySummary: expect.any(Array),
       },
+      fallback: expect.any(Boolean),
     });
   });
 

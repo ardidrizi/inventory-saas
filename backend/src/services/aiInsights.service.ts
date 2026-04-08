@@ -125,23 +125,29 @@ const buildFallbackInsights = (stats: AIInsightsStats): AIInsightsResult => {
   };
 };
 
-const parseAIInsightsResponse = (content: string, stats: AIInsightsStats): AIInsightsResult => {
+const parseAIInsightsResponse = (
+  content: string,
+  stats: AIInsightsStats,
+): { insights: AIInsightsResult; usedFallback: boolean } => {
   try {
     const parsed = JSON.parse(content) as unknown;
     const validated = aiInsightsSchema.safeParse(parsed);
 
     if (!validated.success) {
-      return buildFallbackInsights(stats);
+      return { insights: buildFallbackInsights(stats), usedFallback: true };
     }
 
     return {
-      summary: validated.data.summary.trim(),
-      risks: validated.data.risks,
-      opportunities: validated.data.opportunities,
-      actions: validated.data.actions,
+      insights: {
+        summary: validated.data.summary.trim(),
+        risks: validated.data.risks,
+        opportunities: validated.data.opportunities,
+        actions: validated.data.actions,
+      },
+      usedFallback: false,
     };
   } catch {
-    return buildFallbackInsights(stats);
+    return { insights: buildFallbackInsights(stats), usedFallback: true };
   }
 };
 
@@ -308,6 +314,9 @@ interface OpenAIErrorDetails {
   requestId?: string;
 }
 
+const isQuotaError = (details: OpenAIErrorDetails): boolean =>
+  details.status === 429 || details.code === 'insufficient_quota';
+
 const getOpenAIErrorDetails = (error: unknown): OpenAIErrorDetails => {
   const openAIError = error as {
     status?: number;
@@ -350,12 +359,12 @@ export const generateInsights = async () => {
       success: true,
       insights: buildFallbackInsights(stats),
       stats,
+      fallback: true,
     };
   }
 
-  const client = await getOpenAIClient();
-
   try {
+    const client = await getOpenAIClient();
     const response = await client.chat.completions.create({
       model: 'gpt-4.1-mini',
       temperature: 0.2,
@@ -377,22 +386,32 @@ export const generateInsights = async () => {
     });
 
     const content = response.choices?.[0]?.message?.content;
-    const insights = content ? parseAIInsightsResponse(content, stats) : buildFallbackInsights(stats);
+    const parsed = content
+      ? parseAIInsightsResponse(content, stats)
+      : { insights: buildFallbackInsights(stats), usedFallback: true };
 
     return {
       success: true,
-      insights,
+      insights: parsed.insights,
       stats,
+      fallback: parsed.usedFallback,
     };
   } catch (error) {
     const details = getOpenAIErrorDetails(error);
     console.error('OpenAI request failed while generating AI insights', details);
+    const fallbackInsights = buildFallbackInsights(stats);
 
-    const isQuotaError = details.status === 429 || details.code === 'insufficient_quota';
-    if (isQuotaError) {
-      throw createHttpError('OpenAI API quota exceeded. Check API billing or usage limits.', 429);
+    if (isQuotaError(details)) {
+      console.warn('OpenAI quota limit reached; returning locally generated fallback insights');
+    } else {
+      console.warn('OpenAI unavailable or request failed; returning locally generated fallback insights');
     }
 
-    throw createHttpError('Failed to generate AI insights from OpenAI', 502);
+    return {
+      success: true,
+      insights: fallbackInsights,
+      stats,
+      fallback: true,
+    };
   }
 };
