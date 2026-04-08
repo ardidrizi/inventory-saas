@@ -44,6 +44,7 @@ export interface GenerateAIInsightsResponse {
   success: boolean;
   insights: AIInsights;
   stats: AIInsightsStats;
+  fallback: boolean;
 }
 
 export const generateInsights = () =>
