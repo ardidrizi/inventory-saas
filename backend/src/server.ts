@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
-import app from './app';
 import { env } from './config/env';
+import app from './app';
 
 const startServer = async () => {
   try {
