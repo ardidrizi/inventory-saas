@@ -80,6 +80,7 @@ describe('AI Insights API', () => {
         categorySummary: [],
       },
       fallback: false,
+      cached: false,
     });
 
     const res = await request(app)
@@ -109,6 +110,7 @@ describe('AI Insights API', () => {
         categorySummary: expect.any(Array),
       },
       fallback: expect.any(Boolean),
+      cached: expect.any(Boolean),
     });
   });
 
