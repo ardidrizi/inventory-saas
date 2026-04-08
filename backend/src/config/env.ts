@@ -9,6 +9,7 @@ const envSchema = z.object({
   MONGO_URI: z.string().min(1, 'MONGO_URI is required').optional(),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required').optional(),
   JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters'),
+  OPENAI_API_KEY: z.string().trim().min(1, 'OPENAI_API_KEY must not be empty').optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
