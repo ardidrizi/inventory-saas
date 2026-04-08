@@ -3,9 +3,36 @@ import mongoose from 'mongoose';
 import { env } from './config/env';
 import app from './app';
 
+const sanitizeMongoUriForLogging = (mongoUri: string) => {
+  try {
+    const url = new URL(mongoUri);
+    const databaseName = url.pathname.replace(/^\//, '') || '(default)';
+    const replicaSet = url.searchParams.get('replicaSet') ?? 'none';
+
+    return {
+      protocol: url.protocol.replace(':', ''),
+      host: url.hostname || 'unknown',
+      port: url.port || '(default)',
+      database: databaseName,
+      replicaSet,
+    };
+  } catch {
+    return {
+      protocol: 'invalid',
+      host: 'invalid',
+      port: 'invalid',
+      database: 'invalid',
+      replicaSet: 'invalid',
+    };
+  }
+};
+
 const startServer = async () => {
   try {
-    console.log(`[Mongo] Effective MONGO_URI: ${env.MONGO_URI}`);
+    const sanitizedMongoUri = sanitizeMongoUriForLogging(env.MONGO_URI);
+    console.log(
+      `[Mongo] Effective MONGO_URI (sanitized): protocol=${sanitizedMongoUri.protocol} host=${sanitizedMongoUri.host} port=${sanitizedMongoUri.port} database=${sanitizedMongoUri.database} replicaSet=${sanitizedMongoUri.replicaSet}`,
+    );
     await mongoose.connect(env.MONGO_URI);
 
     const { host, port, name } = mongoose.connection;
