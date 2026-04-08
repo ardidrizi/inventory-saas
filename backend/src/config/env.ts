@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
   PORT: z.coerce.number().default(4000),
   MONGO_URI: z.string().min(1, 'MONGO_URI is required').optional(),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required').optional(),
@@ -22,8 +24,8 @@ if (!parsed.success) {
 const mongoUri = parsed.data.MONGO_URI ?? parsed.data.MONGODB_URI;
 
 if (!mongoUri) {
-  console.error('❌ Invalid environment variables:');
-  console.error('  MONGO_URI: MONGO_URI (or legacy MONGODB_URI) is required');
+  console.error("❌ Invalid environment variables:");
+  console.error("  MONGO_URI: MONGO_URI (or legacy MONGODB_URI) is required");
   process.exit(1);
 }
 
