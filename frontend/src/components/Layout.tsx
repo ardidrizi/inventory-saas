@@ -9,6 +9,7 @@ const navItems = [
   { path: '/orders', label: '🛒 Orders' },
   { path: '/users', label: '👥 Users', adminOnly: true },
   { path: '/audit', label: '📋 Audit Logs', adminOnly: true },
+  { path: '/ai-insights', label: '🤖 AI Insights', adminOnly: true },
 ];
 
 const Layout: React.FC = () => {
