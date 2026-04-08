@@ -8,7 +8,7 @@ RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+RUN npm run build && test -f dist/seed.js
 
 # Stage 2: Production
 FROM node:20-alpine
