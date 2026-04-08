@@ -34,15 +34,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     dashboardApi
       .getStats()
-            .then((data) =>
-        setStats({
-          ...defaultStats,
-          ...data,
-          ordersByStatus: data?.ordersByStatus ?? {},
-          revenueOverTime: data?.revenueOverTime ?? [],
-          recentOrders: data?.recentOrders ?? [],
-        })
-      )
+      .then((data) => setStats(data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
