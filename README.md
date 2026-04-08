@@ -87,25 +87,22 @@ cp .env.example .env
 | Variable     | Description                  | Default                                    |
 |--------------|------------------------------|--------------------------------------------|
 | `PORT`       | Backend server port          | `4000`                                     |
-| `MONGO_URI`  | MongoDB connection string    | `mongodb://localhost:27017/inventory-SAAS?replicaSet=rs0`  |
+| `MONGO_URI`  | MongoDB connection string    | `mongodb://localhost:27018/inventory?replicaSet=rs0`  |
 | `JWT_SECRET` | Secret key for JWT signing   | *(set your own)*                            |
 
-### Running with Docker Compose (Replica Set for Transactions)
+### Running MongoDB with Docker Compose (Replica Set for Transactions)
 
 ```bash
-docker compose up --build
+docker compose up -d mongo mongo-init
 ```
 
 This starts:
-- `mongo` as a single-node replica set (`rs0`)
-- `mongo-init` to initialize the replica set once
-- `backend` with `MONGO_URI=mongodb://mongo:27017/inventory?replicaSet=rs0`
-- `frontend` unchanged
+- `mongo` as a single-node replica set (`rs0`) on host port `27018` (to avoid local `27017` conflicts)
+- `mongo-init` that initializes/reconfigures the replica set member as `localhost:27018`
 
 After startup:
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:5000`
-- Order creation works locally with MongoDB transactions enabled.
+- MongoDB: `mongodb://localhost:27018/inventory?replicaSet=rs0`
+- Order creation works locally with MongoDB transactions enabled from a locally running backend.
 
 ### Running the App
 
