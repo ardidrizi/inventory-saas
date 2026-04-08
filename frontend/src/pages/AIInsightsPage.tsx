@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import * as aiApi from '../api/ai.api';
 import { useAuth } from '../context/AuthContext';
 
-const card = 'rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800';
+const pageCard = 'rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800';
 
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
@@ -15,6 +15,18 @@ const AIInsightsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const isAdmin = user?.role === 'admin';
+
+  const statCards = useMemo(() => {
+    if (!data) return [];
+
+    return [
+      { label: 'Total Products', value: String(data.stats.totals.products), tone: 'text-sky-600' },
+      { label: 'Low Stock', value: String(data.stats.totals.lowStockProducts), tone: 'text-amber-600' },
+      { label: 'Out of Stock', value: String(data.stats.totals.outOfStockProducts), tone: 'text-rose-600' },
+      { label: 'Total Orders', value: String(data.stats.totals.orders), tone: 'text-violet-600' },
+      { label: 'Total Revenue', value: formatCurrency(data.stats.totals.revenue), tone: 'text-emerald-600' },
+    ];
+  }, [data]);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -36,7 +48,7 @@ const AIInsightsPage: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className={card}>
+      <div className={pageCard}>
         <h1 className="mb-2 text-2xl font-bold text-gray-800 dark:text-gray-100">🤖 AI Insights</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300">
           This page is available only to admin users.
@@ -47,14 +59,20 @@ const AIInsightsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">🤖 AI Insights</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">🤖 AI Insights</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            Generate an AI-driven snapshot of inventory health, risks, and recommended next actions.
+          </p>
+        </div>
+
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="cursor-pointer rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex cursor-pointer items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          {loading ? 'Generating…' : 'Generate Insights'}
+          {loading ? 'Generating Insights…' : 'Generate Insights'}
         </button>
       </div>
 
@@ -65,87 +83,95 @@ const AIInsightsPage: React.FC = () => {
       )}
 
       {!data && !loading && !error && (
-        <div className={card}>
+        <div className={pageCard}>
+          <h2 className="mb-1 text-base font-semibold text-gray-800 dark:text-gray-100">No insights generated yet</h2>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            Click <span className="font-semibold">Generate Insights</span> to create a fresh AI summary from your current inventory and orders.
+            Click <span className="font-semibold">Generate Insights</span> to analyze current products and orders.
           </p>
         </div>
       )}
 
       {loading && (
-        <div className={card}>
-          <p className="text-sm text-gray-600 dark:text-gray-300">Generating insights from current business data…</p>
+        <div className={pageCard}>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Building your business summary from recent inventory and order data…
+          </p>
         </div>
       )}
 
       {data && (
         <>
-          <section className={card}>
-            <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-100">Stats Snapshot</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="rounded border border-gray-100 p-3 dark:border-gray-700">
-                <p className="text-xs text-gray-500">Products</p>
-                <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">{data.stats.totals.products}</p>
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {statCards.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+              >
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{card.label}</p>
+                <p className={`mt-2 text-xl font-bold ${card.tone}`}>{card.value}</p>
               </div>
-              <div className="rounded border border-gray-100 p-3 dark:border-gray-700">
-                <p className="text-xs text-gray-500">Low Stock</p>
-                <p className="text-lg font-semibold text-amber-600">{data.stats.totals.lowStockProducts}</p>
-              </div>
-              <div className="rounded border border-gray-100 p-3 dark:border-gray-700">
-                <p className="text-xs text-gray-500">Out of Stock</p>
-                <p className="text-lg font-semibold text-rose-600">{data.stats.totals.outOfStockProducts}</p>
-              </div>
-              <div className="rounded border border-gray-100 p-3 dark:border-gray-700">
-                <p className="text-xs text-gray-500">Orders</p>
-                <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">{data.stats.totals.orders}</p>
-              </div>
-              <div className="rounded border border-gray-100 p-3 dark:border-gray-700">
-                <p className="text-xs text-gray-500">Revenue</p>
-                <p className="text-lg font-semibold text-emerald-600">{formatCurrency(data.stats.totals.revenue)}</p>
-              </div>
-            </div>
+            ))}
           </section>
 
-          <section className={card}>
-            <h2 className="mb-2 text-lg font-semibold text-gray-800 dark:text-gray-100">Summary</h2>
-            <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{data.insights.summary}</p>
+          <section className={pageCard}>
+            <h2 className="mb-2 text-base font-semibold text-gray-800 dark:text-gray-100">Executive Summary</h2>
+            <p className="rounded-lg bg-gray-50 px-4 py-3 text-sm leading-relaxed text-gray-700 dark:bg-gray-900/60 dark:text-gray-200">
+              {data.insights.summary}
+            </p>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-3">
-            <div className={card}>
-              <h3 className="mb-2 text-base font-semibold text-rose-700 dark:text-rose-300">Risks</h3>
+          <section className="grid gap-4 xl:grid-cols-3">
+            <div className={pageCard}>
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                Risks
+              </h3>
               {data.insights.risks.length === 0 ? (
-                <p className="text-sm text-gray-500">No risks identified.</p>
+                <p className="text-sm text-gray-500">No notable risks found.</p>
               ) : (
-                <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-200">
+                <ul className="space-y-2">
                   {data.insights.risks.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
+                    <li key={`${item}-${index}`} className="flex gap-2 text-sm text-gray-700 dark:text-gray-200">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-rose-500" />
+                      <span>{item}</span>
+                    </li>
                   ))}
                 </ul>
               )}
             </div>
 
-            <div className={card}>
-              <h3 className="mb-2 text-base font-semibold text-blue-700 dark:text-blue-300">Opportunities</h3>
+            <div className={pageCard}>
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                Opportunities
+              </h3>
               {data.insights.opportunities.length === 0 ? (
-                <p className="text-sm text-gray-500">No opportunities identified.</p>
+                <p className="text-sm text-gray-500">No clear opportunities detected.</p>
               ) : (
-                <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-200">
+                <ul className="space-y-2">
                   {data.insights.opportunities.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
+                    <li key={`${item}-${index}`} className="flex gap-2 text-sm text-gray-700 dark:text-gray-200">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span>{item}</span>
+                    </li>
                   ))}
                 </ul>
               )}
             </div>
 
-            <div className={card}>
-              <h3 className="mb-2 text-base font-semibold text-emerald-700 dark:text-emerald-300">Actions</h3>
+            <div className={pageCard}>
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                Actions
+              </h3>
               {data.insights.actions.length === 0 ? (
                 <p className="text-sm text-gray-500">No actions generated.</p>
               ) : (
-                <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-200">
+                <ol className="space-y-2">
                   {data.insights.actions.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
+                    <li key={`${item}-${index}`} className="flex gap-2 text-sm text-gray-700 dark:text-gray-200">
+                      <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                        {index + 1}
+                      </span>
+                      <span>{item}</span>
+                    </li>
                   ))}
                 </ol>
               )}
