@@ -8,6 +8,17 @@ const pageCard = 'rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
+const normalizeInsightErrorMessage = (message?: string) => {
+  if (!message) return 'Failed to generate AI insights';
+
+  const lower = message.toLowerCase();
+  if (lower.includes('insufficient_quota') || lower.includes('quota exceeded')) {
+    return 'OpenAI API quota exceeded. Check API billing or usage limits.';
+  }
+
+  return message;
+};
+
 const AIInsightsPage: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<aiApi.GenerateAIInsightsResponse | null>(null);
@@ -38,7 +49,7 @@ const AIInsightsPage: React.FC = () => {
       toast.success('AI insights generated');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      const message = axiosErr.response?.data?.message || 'Failed to generate AI insights';
+      const message = normalizeInsightErrorMessage(axiosErr.response?.data?.message);
       setError(message);
       toast.error(message);
     } finally {

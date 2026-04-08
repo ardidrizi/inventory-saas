@@ -123,6 +123,22 @@ describe('AI Insights API', () => {
     expect(res.body.message).toBe('Failed to generate AI insights');
   });
 
+
+  it('should return quota guidance for OpenAI quota errors', async () => {
+    vi.spyOn(aiInsightsService, 'generateInsights').mockRejectedValue(
+      Object.assign(new Error('OpenAI API quota exceeded. Check API billing or usage limits.'), {
+        statusCode: 429,
+      }),
+    );
+
+    const res = await request(app)
+      .post('/api/ai/insights')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(429);
+    expect(res.body.message).toBe('OpenAI API quota exceeded. Check API billing or usage limits.');
+  });
+
   it('should handle missing OPENAI_API_KEY correctly', async () => {
     vi.spyOn(aiInsightsService, 'generateInsights').mockRejectedValue(
       Object.assign(new Error('OPENAI_API_KEY is missing'), { statusCode: 500 }),

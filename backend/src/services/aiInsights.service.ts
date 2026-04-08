@@ -300,6 +300,32 @@ const buildPrompt = (stats: AIInsightsStats) =>
     `Input JSON: ${JSON.stringify(stats)}`,
   ].join('\n');
 
+
+interface OpenAIErrorDetails {
+  status?: number;
+  code?: string;
+  type?: string;
+  requestId?: string;
+}
+
+const getOpenAIErrorDetails = (error: unknown): OpenAIErrorDetails => {
+  const openAIError = error as {
+    status?: number;
+    code?: string;
+    type?: string;
+    request_id?: string;
+    requestId?: string;
+    headers?: Record<string, string | undefined>;
+  };
+
+  return {
+    status: openAIError.status,
+    code: openAIError.code,
+    type: openAIError.type,
+    requestId: openAIError.request_id ?? openAIError.requestId ?? openAIError.headers?.['x-request-id'],
+  };
+};
+
 const INSIGHTS_JSON_SCHEMA = {
   name: 'inventory_insights',
   strict: true,
@@ -359,7 +385,14 @@ export const generateInsights = async () => {
       stats,
     };
   } catch (error) {
-    console.error('OpenAI request failed while generating AI insights', error);
+    const details = getOpenAIErrorDetails(error);
+    console.error('OpenAI request failed while generating AI insights', details);
+
+    const isQuotaError = details.status === 429 || details.code === 'insufficient_quota';
+    if (isQuotaError) {
+      throw createHttpError('OpenAI API quota exceeded. Check API billing or usage limits.', 429);
+    }
+
     throw createHttpError('Failed to generate AI insights from OpenAI', 502);
   }
 };
