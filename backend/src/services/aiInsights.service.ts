@@ -264,7 +264,7 @@ const buildStats = async (): Promise<AIInsightsStats> => {
   }
 };
 
-const loadOpenAiClient = async (): Promise<OpenAIChatClient> => {
+const getOpenAIClient = async (): Promise<OpenAIChatClient> => {
   const apiKey = env.OPENAI_API_KEY;
   const hasApiKey = Boolean(apiKey);
   console.info(`OPENAI_API_KEY present: ${hasApiKey}`);
@@ -282,9 +282,11 @@ const loadOpenAiClient = async (): Promise<OpenAIChatClient> => {
   }
 
   try {
-    return new (OpenAI as new (config: { apiKey: string }) => OpenAIChatClient)({
+    const client = new (OpenAI as new (config: { apiKey: string }) => OpenAIChatClient)({
       apiKey,
     });
+    console.info('OpenAI client initialization succeeded');
+    return client;
   } catch {
     throw createHttpError('OpenAI client initialization failed', 500);
   }
@@ -325,7 +327,7 @@ export const generateInsights = async () => {
     };
   }
 
-  const client = await loadOpenAiClient();
+  const client = await getOpenAIClient();
 
   try {
     const response = await client.chat.completions.create({
@@ -356,7 +358,8 @@ export const generateInsights = async () => {
       insights,
       stats,
     };
-  } catch {
+  } catch (error) {
+    console.error('OpenAI request failed while generating AI insights', error);
     throw createHttpError('Failed to generate AI insights from OpenAI', 502);
   }
 };
