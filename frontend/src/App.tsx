@@ -13,6 +13,7 @@ import ProductsPage from './pages/ProductsPage';
 import OrdersPage from './pages/OrdersPage';
 import UsersPage from './pages/UsersPage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import AIInsightsPage from './pages/AIInsightsPage';
 
 const App: React.FC = () => (
   <ThemeProvider>
@@ -41,6 +42,7 @@ const App: React.FC = () => (
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/audit" element={<AuditLogsPage />} />
+            <Route path="/ai-insights" element={<AIInsightsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
