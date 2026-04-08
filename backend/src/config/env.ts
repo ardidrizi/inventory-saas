@@ -11,10 +11,7 @@ const envSchema = z
     JWT_SECRET: z
       .string({ required_error: 'JWT_SECRET is required' })
       .min(10, 'JWT_SECRET must be at least 10 characters'),
-    OPENAI_API_KEY: z
-      .string({ required_error: 'OPENAI_API_KEY is required' })
-      .trim()
-      .min(1, 'OPENAI_API_KEY must not be empty'),
+    OPENAI_API_KEY: z.string().trim().min(1, 'OPENAI_API_KEY must not be empty').optional(),
   })
   .superRefine((data, ctx) => {
     if (!data.MONGO_URI && !data.MONGODB_URI) {
