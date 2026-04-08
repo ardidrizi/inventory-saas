@@ -2,7 +2,19 @@ import mongoose from 'mongoose';
 import User from './models/User';
 import Product from './models/Product';
 import Order from './models/Order';
-import { env } from './config/env';
+
+const DOCKER_MONGO_URI = 'mongodb://mongo:27017/inventory?replicaSet=rs0';
+
+const resolveMongoUri = () => {
+  const explicitUri =
+    process.env.MONGO_URI?.trim() || process.env.MONGODB_URI?.trim();
+
+  if (explicitUri) {
+    return explicitUri;
+  }
+
+  return DOCKER_MONGO_URI;
+};
 
 const users = [
   { name: 'Admin User', email: 'admin@demo.com', password: 'admin123', role: 'admin' },
@@ -25,9 +37,11 @@ const products = [
 ];
 
 const seed = async () => {
+  const mongoUri = resolveMongoUri();
+
   try {
-    await mongoose.connect(env.MONGO_URI);
-    console.log('Connected to MongoDB');
+    await mongoose.connect(mongoUri);
+    console.log(`Connected to MongoDB (${mongoUri})`);
 
     // Clear existing data
     await Promise.all([User.deleteMany({}), Product.deleteMany({}), Order.deleteMany({})]);
@@ -99,11 +113,11 @@ const seed = async () => {
     console.log('  Admin:   admin@demo.com / admin123');
     console.log('  Manager: manager@demo.com / manager123');
 
-    await mongoose.disconnect();
-    process.exit(0);
   } catch (error) {
     console.error('Seed failed:', error);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
   }
 };
 

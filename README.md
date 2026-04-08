@@ -132,16 +132,16 @@ npm run dev:frontend
 Populate the database with sample users, products, and orders:
 
 ```bash
-npm run dev:backend   # make sure backend is not already running
-cd backend && npm run seed
+docker compose up -d mongo mongo-init backend
+npm run seed
 ```
 
 **Demo accounts:**
 
 | Email               | Password   | Role    |
 |---------------------|------------|---------|
-| admin@demo.com      | demo123    | Admin   |
-| manager@demo.com    | demo123    | Manager |
+| admin@demo.com      | admin123   | Admin   |
+| manager@demo.com    | manager123 | Manager |
 
 ## API Endpoints
 
