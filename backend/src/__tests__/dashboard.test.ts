@@ -33,43 +33,76 @@ describe('Dashboard API', () => {
     expect(res.body.totalOrders).toBe(0);
     expect(res.body.totalRevenue).toBe(0);
     expect(res.body.lowStockProducts).toBe(0);
+    expect(res.body.lowStockThreshold).toBe(10);
+    expect(res.body.lowStockProductList).toEqual([]);
+    expect(res.body.topSellingProducts).toEqual([]);
     expect(res.body.userCount).toBe(1);
     expect(res.body.recentOrders).toEqual([]);
     expect(res.body.ordersByStatus).toEqual({});
     expect(res.body.revenueOverTime).toEqual([]);
   });
 
-  it('should return correct stats after creating data', async () => {
-    // Create product
-    const productRes = await request(app)
+  it('should return low stock list and top-selling products', async () => {
+    const lowStockProductRes = await request(app)
       .post('/api/products')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         name: 'Dashboard Widget',
         sku: 'DW-001',
         price: 100,
-        quantity: 5, // low stock
+        quantity: 5,
         category: 'Test',
       });
 
-    // Create order
+    const topSellerProductRes = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: 'Fast Mover',
+        sku: 'FM-001',
+        price: 25,
+        quantity: 50,
+        category: 'Test',
+      });
+
     await request(app)
       .post('/api/orders')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        items: [{ product: productRes.body._id, quantity: 2 }],
+        items: [
+          { product: lowStockProductRes.body._id, quantity: 2 },
+          { product: topSellerProductRes.body._id, quantity: 7 },
+        ],
         customer: { name: 'Test', email: 'test@example.com' },
       });
+
 
     const res = await request(app)
       .get('/api/dashboard')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.totalProducts).toBe(1);
+    expect(res.body.totalProducts).toBe(2);
     expect(res.body.totalOrders).toBe(1);
-    expect(res.body.totalRevenue).toBe(200);
+    expect(res.body.totalRevenue).toBe(375);
     expect(res.body.lowStockProducts).toBe(1);
+    expect(res.body.lowStockProductList).toHaveLength(1);
+    expect(res.body.lowStockProductList[0]).toMatchObject({
+      name: 'Dashboard Widget',
+      sku: 'DW-001',
+      quantity: 2,
+    });
+    expect(res.body.topSellingProducts).toHaveLength(2);
+    expect(res.body.topSellingProducts[0]).toMatchObject({
+      productName: 'Fast Mover',
+      totalQuantitySold: 7,
+      totalRevenue: 175,
+    });
+    expect(res.body.topSellingProducts[1]).toMatchObject({
+      productName: 'Dashboard Widget',
+      totalQuantitySold: 2,
+      totalRevenue: 200,
+    });
     expect(res.body.recentOrders).toHaveLength(1);
     expect(res.body.ordersByStatus).toHaveProperty('pending', 1);
   });
