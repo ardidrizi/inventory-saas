@@ -35,6 +35,17 @@ export const findById = async (req: AuthRequest, res: Response, next: NextFuncti
   }
 };
 
+export const exportOrdersCsv = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const csv = await orderService.exportCsv();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
+    res.status(200).send(csv);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const order = await orderService.updateStatus(req.params.id as string, req.body.status);

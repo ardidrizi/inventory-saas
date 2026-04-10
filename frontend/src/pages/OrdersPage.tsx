@@ -30,6 +30,7 @@ const OrdersPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [productsLoadError, setProductsLoadError] = useState('');
+  const [exportError, setExportError] = useState('');
   const latestLoadRequestId = useRef(0);
 
   const load = useCallback(async () => {
@@ -100,6 +101,23 @@ const OrdersPage: React.FC = () => {
     }
   };
 
+  const handleExportCsv = async () => {
+    setExportError('');
+    try {
+      const blob = await ordersApi.exportOrdersCsv();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = 'orders.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch {
+      setExportError('Failed to export CSV. Please try again.');
+    }
+  };
+
   return (
     <div>
       <div
@@ -127,6 +145,21 @@ const OrdersPage: React.FC = () => {
               </option>
             ))}
           </select>
+          {canManageOrders && (
+            <button
+              onClick={handleExportCsv}
+              style={{
+                padding: '10px 20px',
+                background: '#607d8b',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer',
+              }}
+            >
+              Export CSV
+            </button>
+          )}
           {canManageOrders && (
             <button
               onClick={openForm}
@@ -303,6 +336,20 @@ const OrdersPage: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {exportError && (
+        <div
+          style={{
+            background: '#ffe0e0',
+            color: '#c00',
+            padding: 12,
+            borderRadius: 6,
+            marginBottom: 12,
+          }}
+        >
+          {exportError}
         </div>
       )}
 

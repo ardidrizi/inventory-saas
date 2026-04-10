@@ -21,3 +21,8 @@ export const createOrder = (data: {
 
 export const updateOrderStatus = (id: string, status: string) =>
   client.patch<Order>(`/orders/${id}/status`, { status }).then((r) => r.data);
+
+export const exportOrdersCsv = () =>
+  client
+    .get('/orders/export', { responseType: 'blob' })
+    .then((r) => r.data as Blob);
