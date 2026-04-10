@@ -28,15 +28,20 @@ const OrdersPage: React.FC = () => {
   ]);
   const [customer, setCustomer] = useState({ name: '', email: '' });
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [productsLoadError, setProductsLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const data = await ordersApi.getOrders({ status: statusFilter || undefined, page });
-      setOrders(data.orders);
-      setTotalPages(data.totalPages);
-    } catch (err) {
-      console.error(err);
+      setOrders(Array.isArray(data?.orders) ? data.orders : []);
+      setTotalPages(data?.totalPages ?? 1);
+    } catch {
+      setOrders([]);
+      setTotalPages(1);
+      setLoadError('Failed to load orders. Please refresh and try again.');
     } finally {
       setLoading(false);
     }
@@ -47,11 +52,13 @@ const OrdersPage: React.FC = () => {
   }, [load]);
 
   const openForm = async () => {
+    setProductsLoadError('');
     try {
       const data = await productsApi.getProducts({ limit: 100 });
-      setProducts(data.products);
-    } catch (err) {
-      console.error(err);
+      setProducts(Array.isArray(data?.products) ? data.products : []);
+    } catch {
+      setProducts([]);
+      setProductsLoadError('Could not load products. You can retry in a moment.');
     }
     setItems([{ product: '', quantity: 1 }]);
     setCustomer({ name: '', email: '' });
@@ -151,6 +158,19 @@ const OrdersPage: React.FC = () => {
               {error}
             </div>
           )}
+          {productsLoadError && (
+            <div
+              style={{
+                background: '#fff3cd',
+                color: '#8a6d3b',
+                padding: 10,
+                borderRadius: 4,
+                marginBottom: 12,
+              }}
+            >
+              {productsLoadError}
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             <div
               style={{
@@ -190,9 +210,9 @@ const OrdersPage: React.FC = () => {
                   style={{ ...inputStyle, flex: 2 }}
                 >
                   <option value="">Select product</option>
-                  {products.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name} (Stock: {p.quantity})
+                  {(Array.isArray(products) ? products : []).map((p) => (
+                    <option key={p._id ?? p.name} value={p._id}>
+                      {p.name || 'Unnamed'} (Stock: {p.quantity ?? 0})
                     </option>
                   ))}
                 </select>
@@ -277,6 +297,17 @@ const OrdersPage: React.FC = () => {
 
       {loading ? (
         <div>Loading...</div>
+      ) : loadError ? (
+        <div
+          style={{
+            background: '#ffe0e0',
+            color: '#c00',
+            padding: 12,
+            borderRadius: 6,
+          }}
+        >
+          {loadError}
+        </div>
       ) : (
         <div
           style={{
@@ -299,13 +330,13 @@ const OrdersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => (
-                <tr key={o._id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 12, fontFamily: 'monospace' }}>{o.orderNumber}</td>
-                  <td style={{ padding: 12 }}>{o.customer.name}</td>
-                  <td style={{ padding: 12 }}>{o.items.length} item(s)</td>
+              {(Array.isArray(orders) ? orders : []).map((o) => (
+                <tr key={o._id ?? o.orderNumber} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: 12, fontFamily: 'monospace' }}>{o.orderNumber || '-'}</td>
+                  <td style={{ padding: 12 }}>{o.customer?.name || '-'}</td>
+                  <td style={{ padding: 12 }}>{Array.isArray(o.items) ? o.items.length : 0} item(s)</td>
                   <td style={{ padding: 12, textAlign: 'right' }}>
-                    ${o.totalAmount.toLocaleString()}
+                    ${(o.totalAmount ?? 0).toLocaleString()}
                   </td>
                   <td style={{ padding: 12 }}>
                     <span
@@ -331,7 +362,7 @@ const OrdersPage: React.FC = () => {
                     </span>
                   </td>
                   <td style={{ padding: 12 }}>
-                    {new Date(o.createdAt).toLocaleDateString()}
+                    {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '-'}
                   </td>
                   {isAdmin && (
                     <td style={{ padding: 12, textAlign: 'center' }}>
