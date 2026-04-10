@@ -207,6 +207,7 @@ const DashboardPage: React.FC = () => {
                   <th style={{ textAlign: 'left', padding: 8 }}>Product</th>
                   <th style={{ textAlign: 'left', padding: 8 }}>SKU</th>
                   <th style={{ textAlign: 'left', padding: 8 }}>Qty</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -215,6 +216,9 @@ const DashboardPage: React.FC = () => {
                     <td style={{ padding: 8 }}>{product.name || '-'}</td>
                     <td style={{ padding: 8 }}>{product.sku || '-'}</td>
                     <td style={{ padding: 8, fontWeight: 700, color: '#c62828' }}>{product.quantity ?? 0}</td>
+                    <td style={{ padding: 8, fontWeight: 600 }}>
+                      {(product.quantity ?? 0) === 0 ? 'Out of Stock' : 'Low Stock'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

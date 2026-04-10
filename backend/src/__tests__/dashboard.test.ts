@@ -66,6 +66,17 @@ describe('Dashboard API', () => {
       });
 
     await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: 'Out Product',
+        sku: 'OOS-001',
+        price: 30,
+        quantity: 0,
+        category: 'Test',
+      });
+
+    await request(app)
       .post('/api/orders')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
@@ -82,12 +93,17 @@ describe('Dashboard API', () => {
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.totalProducts).toBe(2);
+    expect(res.body.totalProducts).toBe(3);
     expect(res.body.totalOrders).toBe(1);
     expect(res.body.totalRevenue).toBe(375);
-    expect(res.body.lowStockProducts).toBe(1);
-    expect(res.body.lowStockProductList).toHaveLength(1);
+    expect(res.body.lowStockProducts).toBe(2);
+    expect(res.body.lowStockProductList).toHaveLength(2);
     expect(res.body.lowStockProductList[0]).toMatchObject({
+      name: 'Out Product',
+      sku: 'OOS-001',
+      quantity: 0,
+    });
+    expect(res.body.lowStockProductList[1]).toMatchObject({
       name: 'Dashboard Widget',
       sku: 'DW-001',
       quantity: 2,

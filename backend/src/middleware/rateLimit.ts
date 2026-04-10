@@ -3,11 +3,12 @@ import { env } from '../config/env';
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const isTest = env.NODE_ENV === 'test';
+const isDevelopment = env.NODE_ENV === 'development';
 
-export const generalLimiter = rateLimit({
-  skip: () => isTest,
+export const apiLimiter = rateLimit({
+  skip: () => isTest || isDevelopment,
   windowMs: FIFTEEN_MINUTES,
-  max: 100,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests, please try again later.' },
