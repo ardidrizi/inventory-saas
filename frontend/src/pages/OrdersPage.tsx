@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as ordersApi from '../api/orders.api';
 import * as productsApi from '../api/products.api';
 import { Order, Product } from '../types';
@@ -30,20 +30,29 @@ const OrdersPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [productsLoadError, setProductsLoadError] = useState('');
+  const latestLoadRequestId = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++latestLoadRequestId.current;
+
     setLoading(true);
     setLoadError('');
+
     try {
       const data = await ordersApi.getOrders({ status: statusFilter || undefined, page });
+      if (requestId !== latestLoadRequestId.current) return;
+
       setOrders(Array.isArray(data?.orders) ? data.orders : []);
       setTotalPages(data?.totalPages ?? 1);
     } catch {
-      setOrders([]);
+      if (requestId !== latestLoadRequestId.current) return;
+
       setTotalPages(1);
       setLoadError('Failed to load orders. Please refresh and try again.');
     } finally {
-      setLoading(false);
+      if (requestId === latestLoadRequestId.current) {
+        setLoading(false);
+      }
     }
   }, [statusFilter, page]);
 
