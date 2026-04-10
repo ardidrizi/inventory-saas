@@ -85,7 +85,7 @@ export const getStats = async () => {
           _id: '$items.product',
           productName: { $first: '$items.productName' },
           totalQuantitySold: { $sum: '$items.quantity' },
-          totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.unitPrice'] } },
+          totalRevenue: { $sum: { $multiply: ['$items.quantity', { $ifNull: ['$items.unitPrice', '$items.price'] }] } },
           orderCount: { $sum: 1 },
         },
       },
