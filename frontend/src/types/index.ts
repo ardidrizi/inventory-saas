@@ -38,11 +38,31 @@ export interface Order {
   updatedAt: string;
 }
 
+export interface DashboardLowStockProduct {
+  _id: string;
+  name: string;
+  sku: string;
+  quantity: number;
+  category: string;
+  price: number;
+}
+
+export interface DashboardTopSellingProduct {
+  _id: string;
+  productName: string;
+  totalQuantitySold: number;
+  totalRevenue: number;
+  orderCount: number;
+}
+
 export interface DashboardStats {
   totalProducts: number;
   totalOrders: number;
   totalRevenue: number;
   lowStockProducts: number;
+  lowStockThreshold: number;
+  lowStockProductList: DashboardLowStockProduct[];
+  topSellingProducts: DashboardTopSellingProduct[];
   userCount: number;
   recentOrders: Order[];
   ordersByStatus: Record<string, number>;

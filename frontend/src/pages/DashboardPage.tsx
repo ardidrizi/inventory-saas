@@ -21,6 +21,9 @@ const defaultStats: DashboardStats = {
   totalOrders: 0,
   totalRevenue: 0,
   lowStockProducts: 0,
+  lowStockThreshold: 10,
+  lowStockProductList: [],
+  topSellingProducts: [],
   userCount: 0,
   recentOrders: [],
   ordersByStatus: {},
@@ -39,6 +42,8 @@ const DashboardPage: React.FC = () => {
         setStats({
           ...defaultStats,
           ...(data ?? {}),
+          lowStockProductList: Array.isArray(data?.lowStockProductList) ? data.lowStockProductList : [],
+          topSellingProducts: Array.isArray(data?.topSellingProducts) ? data.topSellingProducts : [],
           recentOrders: Array.isArray(data?.recentOrders) ? data.recentOrders : [],
           ordersByStatus:
             data?.ordersByStatus && typeof data.ordersByStatus === 'object'
@@ -81,6 +86,8 @@ const DashboardPage: React.FC = () => {
   }));
   const revenueData = Array.isArray(stats.revenueOverTime) ? stats.revenueOverTime : [];
   const recentOrders = Array.isArray(stats.recentOrders) ? stats.recentOrders : [];
+  const lowStockProducts = Array.isArray(stats.lowStockProductList) ? stats.lowStockProductList : [];
+  const topSellingProducts = Array.isArray(stats.topSellingProducts) ? stats.topSellingProducts : [];
 
   return (
     <div>
@@ -170,6 +177,81 @@ const DashboardPage: React.FC = () => {
             </ResponsiveContainer>
           ) : (
             <div style={{ color: '#999' }}>No order status data available</div>
+          )}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: 20,
+          marginBottom: 30,
+        }}
+      >
+        <div
+          style={{
+            background: '#fff',
+            padding: 24,
+            borderRadius: 8,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>Low-Stock Alerts (≤ {stats.lowStockThreshold ?? 10})</h3>
+          {lowStockProducts.length === 0 ? (
+            <div style={{ color: '#999' }}>No low-stock products right now.</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #eee' }}>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Product</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>SKU</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lowStockProducts.map((product) => (
+                  <tr key={product._id} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: 8 }}>{product.name || '-'}</td>
+                    <td style={{ padding: 8 }}>{product.sku || '-'}</td>
+                    <td style={{ padding: 8, fontWeight: 700, color: '#c62828' }}>{product.quantity ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div
+          style={{
+            background: '#fff',
+            padding: 24,
+            borderRadius: 8,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>Top-Selling Products</h3>
+          {topSellingProducts.length === 0 ? (
+            <div style={{ color: '#999' }}>No sales data available yet.</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #eee' }}>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Product</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Units Sold</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topSellingProducts.map((product) => (
+                  <tr key={product._id} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: 8 }}>{product.productName || '-'}</td>
+                    <td style={{ padding: 8 }}>{product.totalQuantitySold ?? 0}</td>
+                    <td style={{ padding: 8 }}>${(product.totalRevenue ?? 0).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
