@@ -13,6 +13,7 @@ export interface Product {
   description: string;
   price: number;
   quantity: number;
+  lowStockThreshold?: number;
   category: string;
   isDeleted: boolean;
   createdAt: string;

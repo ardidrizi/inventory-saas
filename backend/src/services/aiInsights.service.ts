@@ -58,7 +58,7 @@ interface OpenAIChatClient {
   };
 }
 
-const LOW_STOCK_THRESHOLD = 10;
+const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 const TREND_WINDOW_DAYS = 7;
 const INSIGHTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -102,7 +102,9 @@ const buildFallbackInsights = (stats: AIInsightsStats): AIInsightsResult => {
     risks.push(`${stats.totals.outOfStockProducts} products are currently out of stock.`);
   }
   if (stats.totals.lowStockProducts > 0) {
-    risks.push(`${stats.totals.lowStockProducts} products are low on stock (≤ ${LOW_STOCK_THRESHOLD}).`);
+    risks.push(
+      `${stats.totals.lowStockProducts} products are low on stock at or below their configured thresholds.`,
+    );
   }
 
   const topProduct = stats.topProductsByStock[0];
@@ -169,7 +171,17 @@ const buildStats = async (): Promise<AIInsightsStats> => {
       categorySummaryRaw,
     ] = await Promise.all([
       Product.countDocuments({ isDeleted: false }),
-      Product.countDocuments({ isDeleted: false, quantity: { $gt: 0, $lte: LOW_STOCK_THRESHOLD } }),
+      Product.countDocuments({
+        isDeleted: false,
+        $expr: {
+          $and: [
+            { $gt: ['$quantity', 0] },
+            {
+              $lte: ['$quantity', { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] }],
+            },
+          ],
+        },
+      }),
       Product.countDocuments({ isDeleted: false, quantity: { $lte: 0 } }),
       Product.find({ isDeleted: false })
         .sort({ quantity: -1 })

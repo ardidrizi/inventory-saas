@@ -6,6 +6,7 @@ export interface IProduct extends Document {
   description: string;
   price: number;
   quantity: number;
+  lowStockThreshold: number;
   category: string;
   isDeleted: boolean;
   createdAt: Date;
@@ -19,6 +20,7 @@ const productSchema = new Schema<IProduct>(
     description: { type: String, default: '' },
     price: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 0, default: 0 },
+    lowStockThreshold: { type: Number, required: true, min: 0, default: 10 },
     category: { type: String, required: true, trim: true },
     isDeleted: { type: Boolean, default: false },
   },

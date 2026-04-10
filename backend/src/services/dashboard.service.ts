@@ -6,7 +6,7 @@ const activeProductFilter = {
   $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
 };
 
-const LOW_STOCK_THRESHOLD = 10;
+const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 const LOW_STOCK_LIMIT = 20;
 const TOP_SELLING_LIMIT = 5;
 
@@ -41,11 +41,31 @@ export const getStats = async () => {
     ]),
     Product.countDocuments({
       ...activeProductFilter,
-      $expr: { $lte: [{ $ifNull: ['$quantity', '$stock'] }, LOW_STOCK_THRESHOLD] },
+      $expr: {
+        $and: [
+          { $gt: [{ $ifNull: ['$quantity', '$stock'] }, 0] },
+          {
+            $lte: [
+              { $ifNull: ['$quantity', '$stock'] },
+              { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
+            ],
+          },
+        ],
+      },
     }),
     Product.find({
       ...activeProductFilter,
-      $expr: { $lte: [{ $ifNull: ['$quantity', '$stock'] }, LOW_STOCK_THRESHOLD] },
+      $expr: {
+        $and: [
+          { $gt: [{ $ifNull: ['$quantity', '$stock'] }, 0] },
+          {
+            $lte: [
+              { $ifNull: ['$quantity', '$stock'] },
+              { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
+            ],
+          },
+        ],
+      },
     })
       .sort({ quantity: 1, name: 1 })
       .limit(LOW_STOCK_LIMIT)
@@ -113,7 +133,7 @@ export const getStats = async () => {
     totalOrders,
     totalRevenue: totalRevenue[0]?.total ?? 0,
     lowStockProducts,
-    lowStockThreshold: LOW_STOCK_THRESHOLD,
+    lowStockThreshold: DEFAULT_LOW_STOCK_THRESHOLD,
     lowStockProductList,
     topSellingProducts,
     userCount,
