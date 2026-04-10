@@ -34,6 +34,9 @@ const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [topSellingRankingMode, setTopSellingRankingMode] = useState<'quantity' | 'revenue'>(
+    'quantity',
+  );
 
   useEffect(() => {
     dashboardApi
@@ -88,6 +91,11 @@ const DashboardPage: React.FC = () => {
   const recentOrders = Array.isArray(stats.recentOrders) ? stats.recentOrders : [];
   const lowStockProducts = Array.isArray(stats.lowStockProductList) ? stats.lowStockProductList : [];
   const topSellingProducts = Array.isArray(stats.topSellingProducts) ? stats.topSellingProducts : [];
+  const sortedTopSellingProducts = [...topSellingProducts].sort((a, b) =>
+    topSellingRankingMode === 'quantity'
+      ? (b.totalQuantitySold ?? 0) - (a.totalQuantitySold ?? 0)
+      : (b.totalRevenue ?? 0) - (a.totalRevenue ?? 0),
+  );
 
   return (
     <div>
@@ -234,7 +242,41 @@ const DashboardPage: React.FC = () => {
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Top-Selling Products</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ marginTop: 0, marginBottom: 0 }}>Top-Selling Products</h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setTopSellingRankingMode('quantity')}
+                style={{
+                  border: '1px solid #ddd',
+                  background: topSellingRankingMode === 'quantity' ? '#e3f2fd' : '#fff',
+                  color: topSellingRankingMode === 'quantity' ? '#1565c0' : '#444',
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                By Quantity
+              </button>
+              <button
+                type="button"
+                onClick={() => setTopSellingRankingMode('revenue')}
+                style={{
+                  border: '1px solid #ddd',
+                  background: topSellingRankingMode === 'revenue' ? '#e3f2fd' : '#fff',
+                  color: topSellingRankingMode === 'revenue' ? '#1565c0' : '#444',
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                By Revenue
+              </button>
+            </div>
+          </div>
           {topSellingProducts.length === 0 ? (
             <div style={{ color: '#999' }}>No sales data available yet.</div>
           ) : (
@@ -247,7 +289,7 @@ const DashboardPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {topSellingProducts.map((product) => (
+                {sortedTopSellingProducts.map((product) => (
                   <tr key={product._id} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: 8 }}>{product.productName || '-'}</td>
                     <td style={{ padding: 8 }}>{product.totalQuantitySold ?? 0}</td>
