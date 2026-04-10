@@ -9,8 +9,8 @@ const router = Router();
 router.use(authenticate);
 router.get('/', productController.findAll);
 router.get('/:id', productController.findById);
-router.post('/', authorize('admin'), validate(createProductSchema), productController.create);
-router.put('/:id', authorize('admin'), validate(updateProductSchema), productController.update);
+router.post('/', authorize('admin', 'manager'), validate(createProductSchema), productController.create);
+router.put('/:id', authorize('admin', 'manager'), validate(updateProductSchema), productController.update);
 router.delete('/:id', authorize('admin'), productController.remove);
 
 export default router;

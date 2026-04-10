@@ -26,7 +26,7 @@ const UsersPage: React.FC = () => {
     load();
   }, [load]);
 
-  const handleRoleChange = async (id: string, newRole: 'admin' | 'manager') => {
+  const handleRoleChange = async (id: string, newRole: 'admin' | 'manager' | 'user') => {
     try {
       await usersApi.updateRole(id, newRole);
       toast.success('Role updated');
@@ -115,9 +115,10 @@ const UsersPage: React.FC = () => {
                       <div className="flex items-center justify-center gap-2">
                         <select
                           value={u.role}
-                          onChange={(e) => handleRoleChange(u._id, e.target.value as 'admin' | 'manager')}
+                          onChange={(e) => handleRoleChange(u._id, e.target.value as 'admin' | 'manager' | 'user')}
                           className="cursor-pointer rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-400 focus:outline-none"
                         >
+                          <option value="user">User</option>
                           <option value="manager">Manager</option>
                           <option value="admin">Admin</option>
                         </select>

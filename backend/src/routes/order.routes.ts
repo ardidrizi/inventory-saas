@@ -9,7 +9,7 @@ const router = Router();
 router.use(authenticate);
 router.get('/', orderController.findAll);
 router.get('/:id', orderController.findById);
-router.post('/', validate(createOrderSchema), orderController.create);
-router.patch('/:id/status', authorize('admin'), validate(updateOrderStatusSchema), orderController.updateStatus);
+router.post('/', authorize('admin', 'manager'), validate(createOrderSchema), orderController.create);
+router.patch('/:id/status', authorize('admin', 'manager'), validate(updateOrderStatusSchema), orderController.updateStatus);
 
 export default router;

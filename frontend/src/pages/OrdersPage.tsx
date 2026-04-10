@@ -15,7 +15,7 @@ const inputStyle: React.CSSProperties = {
 
 const OrdersPage: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const canManageOrders = user?.role === 'admin' || user?.role === 'manager';
   const [orders, setOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -127,8 +127,9 @@ const OrdersPage: React.FC = () => {
               </option>
             ))}
           </select>
-          <button
-            onClick={openForm}
+          {canManageOrders && (
+            <button
+              onClick={openForm}
             style={{
               padding: '10px 20px',
               background: '#2196f3',
@@ -139,11 +140,12 @@ const OrdersPage: React.FC = () => {
             }}
           >
             + New Order
-          </button>
+            </button>
+          )}
         </div>
       </div>
 
-      {showForm && (
+      {canManageOrders && showForm && (
         <div
           style={{
             background: '#fff',
@@ -335,7 +337,7 @@ const OrdersPage: React.FC = () => {
                 <th style={{ textAlign: 'right', padding: 12 }}>Total</th>
                 <th style={{ textAlign: 'left', padding: 12 }}>Status</th>
                 <th style={{ textAlign: 'left', padding: 12 }}>Date</th>
-                {isAdmin && <th style={{ textAlign: 'center', padding: 12 }}>Actions</th>}
+                {canManageOrders && <th style={{ textAlign: 'center', padding: 12 }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -373,7 +375,7 @@ const OrdersPage: React.FC = () => {
                   <td style={{ padding: 12 }}>
                     {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '-'}
                   </td>
-                  {isAdmin && (
+                  {canManageOrders && (
                     <td style={{ padding: 12, textAlign: 'center' }}>
                       <select
                         value={o.status}
