@@ -8,6 +8,7 @@ const router = Router();
 
 router.use(authenticate);
 router.get('/', orderController.findAll);
+router.get('/export', authorize('admin', 'manager'), orderController.exportOrdersCsv);
 router.get('/:id', orderController.findById);
 router.post('/', authorize('admin', 'manager'), validate(createOrderSchema), orderController.create);
 router.patch('/:id/status', authorize('admin', 'manager'), validate(updateOrderStatusSchema), orderController.updateStatus);

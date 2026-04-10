@@ -96,6 +96,33 @@ export const findAll = async (query: {
   return { orders, total, page, totalPages: Math.ceil(total / limit) };
 };
 
+export const exportCsv = async () => {
+  const orders = await Order.find({})
+    .sort({ createdAt: -1 })
+    .select('orderNumber customer.name totalAmount status createdAt');
+
+  const escapeCsv = (value: unknown): string => {
+    const str = value == null ? '' : String(value);
+    if (str.includes('"') || str.includes(',') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const header = 'orderNumber,customer.name,totalAmount,status,createdAt';
+  const rows = orders.map((order) =>
+    [
+      escapeCsv(order.orderNumber),
+      escapeCsv(order.customer?.name),
+      escapeCsv(order.totalAmount),
+      escapeCsv(order.status),
+      escapeCsv(order.createdAt ? order.createdAt.toISOString() : ''),
+    ].join(','),
+  );
+
+  return [header, ...rows].join('\n');
+};
+
 export const findById = async (id: string) => {
   const order = await Order.findById(id).populate('createdBy', 'name email');
   if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });

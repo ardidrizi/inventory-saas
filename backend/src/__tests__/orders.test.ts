@@ -7,14 +7,16 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 
 let adminToken: string;
+let managerToken: string;
+let userToken: string;
 let productId: string;
 
-const createAdmin = async () => {
+const createUserToken = async (role: 'admin' | 'manager' | 'user') => {
   const user = await User.create({
-    name: 'Admin',
-    email: 'admin@test.com',
+    name: `${role} user`,
+    email: `${role}@test.com`,
     password: 'password123',
-    role: 'admin',
+    role,
   });
   return jwt.sign({ userId: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '1h' });
 };
@@ -36,7 +38,9 @@ const createProduct = async (token: string, overrides = {}) => {
 
 describe('Orders API', () => {
   beforeEach(async () => {
-    adminToken = await createAdmin();
+    adminToken = await createUserToken('admin');
+    managerToken = await createUserToken('manager');
+    userToken = await createUserToken('user');
     productId = await createProduct(adminToken);
   });
 
@@ -160,6 +164,47 @@ describe('Orders API', () => {
       expect(res.status).toBe(200);
       expect(res.body.orders).toHaveLength(1);
       expect(res.body.totalPages).toBe(2);
+    });
+  });
+
+  describe('GET /api/orders/export', () => {
+    beforeEach(async () => {
+      await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          items: [{ product: productId, quantity: 1 }],
+          customer: { name: 'CSV Customer', email: 'csv@example.com' },
+        });
+    });
+
+    it('should export CSV for admin', async () => {
+      const res = await request(app)
+        .get('/api/orders/export')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+      expect(res.headers['content-disposition']).toContain('attachment; filename="orders.csv"');
+      expect(res.text).toContain('orderNumber,customer.name,totalAmount,status,createdAt');
+      expect(res.text).toContain('CSV Customer');
+    });
+
+    it('should export CSV for manager', async () => {
+      const res = await request(app)
+        .get('/api/orders/export')
+        .set('Authorization', `Bearer ${managerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+    });
+
+    it('should reject export for non-admin/manager users', async () => {
+      const res = await request(app)
+        .get('/api/orders/export')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(403);
     });
   });
 
