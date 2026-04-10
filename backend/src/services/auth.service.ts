@@ -20,7 +20,7 @@ export const register = async (data: {
     throw Object.assign(new Error('Email already registered'), { statusCode: 409 });
   }
 
-  const user = await User.create({ ...data, role: 'manager' });
+  const user = await User.create({ ...data, role: 'user' });
   const token = generateToken(user);
   return { user, token };
 };

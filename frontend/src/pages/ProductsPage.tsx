@@ -16,7 +16,8 @@ const inputStyle: React.CSSProperties = {
 
 const ProductsPage: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const canManageProducts = user?.role === 'admin' || user?.role === 'manager';
+  const canDeleteProducts = user?.role === 'admin';
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -115,7 +116,7 @@ const ProductsPage: React.FC = () => {
             }}
             style={{ padding: 10, border: '1px solid #ddd', borderRadius: 4, width: 250 }}
           />
-          {isAdmin && (
+          {canManageProducts && (
             <button
               onClick={() => {
                 setForm(emptyForm);
@@ -276,7 +277,7 @@ const ProductsPage: React.FC = () => {
                 <th style={{ textAlign: 'left', padding: 12 }}>Category</th>
                 <th style={{ textAlign: 'right', padding: 12 }}>Price</th>
                 <th style={{ textAlign: 'right', padding: 12 }}>Stock</th>
-                {isAdmin && <th style={{ textAlign: 'center', padding: 12 }}>Actions</th>}
+                {canManageProducts && <th style={{ textAlign: 'center', padding: 12 }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -298,7 +299,7 @@ const ProductsPage: React.FC = () => {
                   >
                     {p.quantity ?? 0}
                   </td>
-                  {isAdmin && (
+                  {canManageProducts && (
                     <td style={{ padding: 12, textAlign: 'center' }}>
                       <button
                         onClick={() => handleEdit(p)}
@@ -314,9 +315,10 @@ const ProductsPage: React.FC = () => {
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() => p._id && handleDelete(p._id)}
-                        disabled={!p._id}
+                      {canDeleteProducts && (
+                        <button
+                          onClick={() => p._id && handleDelete(p._id)}
+                          disabled={!p._id}
                         style={{
                           padding: '4px 12px',
                           background: '#e74c3c',
@@ -327,7 +329,8 @@ const ProductsPage: React.FC = () => {
                         }}
                       >
                         Delete
-                      </button>
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>

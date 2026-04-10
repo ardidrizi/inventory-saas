@@ -19,36 +19,57 @@ const App: React.FC = () => (
   <ThemeProvider>
     <ErrorBoundary>
       <AuthProvider>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: { borderRadius: '8px', background: '#333', color: '#fff', fontSize: '14px' },
-        }}
-      />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/audit" element={<AuditLogsPage />} />
-            <Route path="/ai-insights" element={<AIInsightsPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  </ErrorBoundary>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: { borderRadius: '8px', background: '#333', color: '#fff', fontSize: '14px' },
+          }}
+        />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/audit"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AuditLogsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ai-insights"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AIInsightsPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   </ThemeProvider>
 );
 

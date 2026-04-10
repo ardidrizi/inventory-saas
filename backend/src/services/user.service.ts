@@ -8,7 +8,7 @@ export const updateRole = async (userId: string, role: string) => {
   const user = await User.findById(userId);
   if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 });
 
-  user.role = role as 'admin' | 'manager';
+  user.role = role as 'admin' | 'manager' | 'user';
   await user.save();
   return user;
 };
