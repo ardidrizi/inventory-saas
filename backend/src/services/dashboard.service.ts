@@ -89,8 +89,38 @@ export const getStats = async () => {
           orderCount: { $sum: 1 },
         },
       },
-      { $sort: { totalQuantitySold: -1, totalRevenue: -1 } },
-      { $limit: TOP_SELLING_LIMIT },
+      {
+        $facet: {
+          topByQuantity: [{ $sort: { totalQuantitySold: -1, totalRevenue: -1 } }, { $limit: TOP_SELLING_LIMIT }],
+          topByRevenue: [{ $sort: { totalRevenue: -1, totalQuantitySold: -1 } }, { $limit: TOP_SELLING_LIMIT }],
+        },
+      },
+      {
+        $project: {
+          topSellingProducts: {
+            $map: {
+              input: {
+                $objectToArray: {
+                  $arrayToObject: {
+                    $map: {
+                      input: { $concatArrays: ['$topByQuantity', '$topByRevenue'] },
+                      as: 'product',
+                      in: {
+                        k: { $toString: '$$product._id' },
+                        v: '$$product',
+                      },
+                    },
+                  },
+                },
+              },
+              as: 'entry',
+              in: '$$entry.v',
+            },
+          },
+        },
+      },
+      { $unwind: '$topSellingProducts' },
+      { $replaceRoot: { newRoot: '$topSellingProducts' } },
     ]),
     User.countDocuments(),
     Order.find()
