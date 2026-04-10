@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app';
 import '../__tests__/setup';
 import User from '../models/User';
+import Product from '../models/Product';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 
@@ -106,7 +107,7 @@ describe('Dashboard API', () => {
     expect(res.body.lowStockProductList[1]).toMatchObject({
       name: 'Dashboard Widget',
       sku: 'DW-001',
-      quantity: 2,
+      quantity: 3,
     });
     expect(res.body.topSellingProducts).toHaveLength(2);
     expect(res.body.topSellingProducts[0]).toMatchObject({
@@ -126,5 +127,32 @@ describe('Dashboard API', () => {
   it('should require authentication', async () => {
     const res = await request(app).get('/api/dashboard');
     expect(res.status).toBe(401);
+  });
+
+  it('should normalize legacy stock field into quantity for dashboard responses', async () => {
+    await Product.collection.insertOne({
+      name: 'Legacy Stock Item',
+      sku: 'LEG-001',
+      price: 12,
+      stock: 3,
+      category: 'Legacy',
+      isDeleted: false,
+      lowStockThreshold: 10,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.lowStockProducts).toBe(1);
+    expect(res.body.lowStockProductList).toHaveLength(1);
+    expect(res.body.lowStockProductList[0]).toMatchObject({
+      name: 'Legacy Stock Item',
+      sku: 'LEG-001',
+      quantity: 3,
+    });
   });
 });

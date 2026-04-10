@@ -9,6 +9,7 @@ const activeProductFilter = {
 const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 const LOW_STOCK_LIMIT = 20;
 const TOP_SELLING_LIMIT = 5;
+const NORMALIZED_QUANTITY_EXPR = { $ifNull: ['$quantity', '$stock'] };
 
 export const getStats = async () => {
   const [
@@ -43,23 +44,33 @@ export const getStats = async () => {
       ...activeProductFilter,
       $expr: {
         $lte: [
-          { $ifNull: ['$quantity', '$stock'] },
+          NORMALIZED_QUANTITY_EXPR,
           { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
         ],
       },
     }),
-    Product.find({
-      ...activeProductFilter,
-      $expr: {
-        $lte: [
-          { $ifNull: ['$quantity', '$stock'] },
-          { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
-        ],
+    Product.aggregate([
+      {
+        $match: {
+          ...activeProductFilter,
+          $expr: {
+            $lte: [NORMALIZED_QUANTITY_EXPR, { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] }],
+          },
+        },
       },
-    })
-      .sort({ quantity: 1, name: 1 })
-      .limit(LOW_STOCK_LIMIT)
-      .select('_id name sku quantity category price'),
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          sku: 1,
+          category: 1,
+          price: 1,
+          quantity: NORMALIZED_QUANTITY_EXPR,
+        },
+      },
+      { $sort: { quantity: 1, name: 1 } },
+      { $limit: LOW_STOCK_LIMIT },
+    ]),
     Order.aggregate([
       {
         $match: {
