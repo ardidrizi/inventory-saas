@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import routes from "./routes";
-import { generalLimiter, authLimiter } from "./middleware/rateLimit";
+import { apiLimiter, authLimiter } from "./middleware/rateLimit";
 
 const app = express();
 
@@ -13,7 +13,7 @@ app.use(morgan("combined"));
 app.use(express.json());
 
 app.use("/api/auth", authLimiter);
-app.use("/api", generalLimiter);
+app.use("/api", apiLimiter);
 
 app.use("/api", routes);
 

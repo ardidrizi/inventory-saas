@@ -42,28 +42,18 @@ export const getStats = async () => {
     Product.countDocuments({
       ...activeProductFilter,
       $expr: {
-        $and: [
-          { $gt: [{ $ifNull: ['$quantity', '$stock'] }, 0] },
-          {
-            $lte: [
-              { $ifNull: ['$quantity', '$stock'] },
-              { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
-            ],
-          },
+        $lte: [
+          { $ifNull: ['$quantity', '$stock'] },
+          { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
         ],
       },
     }),
     Product.find({
       ...activeProductFilter,
       $expr: {
-        $and: [
-          { $gt: [{ $ifNull: ['$quantity', '$stock'] }, 0] },
-          {
-            $lte: [
-              { $ifNull: ['$quantity', '$stock'] },
-              { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
-            ],
-          },
+        $lte: [
+          { $ifNull: ['$quantity', '$stock'] },
+          { $ifNull: ['$lowStockThreshold', DEFAULT_LOW_STOCK_THRESHOLD] },
         ],
       },
     })
