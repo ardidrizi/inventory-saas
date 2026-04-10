@@ -3,7 +3,17 @@ import * as productsApi from '../api/products.api';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
 
-const emptyForm = { name: '', sku: '', description: '', price: 0, quantity: 0, category: '' };
+const DEFAULT_LOW_STOCK_THRESHOLD = 10;
+
+const emptyForm = {
+  name: '',
+  sku: '',
+  description: '',
+  price: 0,
+  quantity: 0,
+  lowStockThreshold: DEFAULT_LOW_STOCK_THRESHOLD,
+  category: '',
+};
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -78,6 +88,7 @@ const ProductsPage: React.FC = () => {
       description: product.description,
       price: product.price,
       quantity: product.quantity,
+      lowStockThreshold: product.lowStockThreshold ?? DEFAULT_LOW_STOCK_THRESHOLD,
       category: product.category,
     });
     setEditingId(product._id);
@@ -205,6 +216,15 @@ const ProductsPage: React.FC = () => {
                 style={inputStyle}
               />
               <input
+                type="number"
+                placeholder="Low-stock threshold"
+                value={form.lowStockThreshold ?? ''}
+                onChange={(e) => setForm({ ...form, lowStockThreshold: Number(e.target.value) })}
+                required
+                min={0}
+                style={inputStyle}
+              />
+              <input
                 placeholder="Description"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -289,15 +309,47 @@ const ProductsPage: React.FC = () => {
                   <td style={{ padding: 12, textAlign: 'right' }}>
                     ${(p.price ?? 0).toFixed(2)}
                   </td>
-                  <td
-                    style={{
-                      padding: 12,
-                      textAlign: 'right',
-                      color: (p.quantity ?? 0) <= 10 ? '#e91e63' : 'inherit',
-                      fontWeight: (p.quantity ?? 0) <= 10 ? 700 : 400,
-                    }}
-                  >
-                    {p.quantity ?? 0}
+                  <td style={{ padding: 12, textAlign: 'right' }}>
+                    {(() => {
+                      const quantity = p.quantity ?? 0;
+                      const threshold = p.lowStockThreshold ?? DEFAULT_LOW_STOCK_THRESHOLD;
+                      const isOutOfStock = quantity === 0;
+                      const isLowStock = quantity > 0 && quantity <= threshold;
+
+                      return (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <span>{quantity}</span>
+                          {isOutOfStock ? (
+                            <span
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                fontSize: 12,
+                                background: '#fdecea',
+                                color: '#b42318',
+                                fontWeight: 600,
+                              }}
+                            >
+                              Out of Stock
+                            </span>
+                          ) : null}
+                          {!isOutOfStock && isLowStock ? (
+                            <span
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                fontSize: 12,
+                                background: '#fff4e5',
+                                color: '#b54708',
+                                fontWeight: 600,
+                              }}
+                            >
+                              Low Stock
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </td>
                   {canManageProducts && (
                     <td style={{ padding: 12, textAlign: 'center' }}>
