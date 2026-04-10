@@ -27,16 +27,21 @@ const ProductsPage: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const data = await productsApi.getProducts({ search: search || undefined, page });
-      setProducts(data.products);
-      setTotal(data.total);
-      setTotalPages(data.totalPages);
-    } catch (err) {
-      console.error(err);
+      setProducts(Array.isArray(data?.products) ? data.products : []);
+      setTotal(data?.total ?? 0);
+      setTotalPages(data?.totalPages ?? 1);
+    } catch {
+      setProducts([]);
+      setTotal(0);
+      setTotalPages(1);
+      setLoadError('Failed to load products. Please refresh and try again.');
     } finally {
       setLoading(false);
     }
@@ -99,7 +104,7 @@ const ProductsPage: React.FC = () => {
           marginBottom: 20,
         }}
       >
-        <h1 style={{ margin: 0 }}>Products ({total})</h1>
+        <h1 style={{ margin: 0 }}>Products ({total ?? 0})</h1>
         <div style={{ display: 'flex', gap: 10 }}>
           <input
             placeholder="Search products..."
@@ -243,6 +248,17 @@ const ProductsPage: React.FC = () => {
 
       {loading ? (
         <div>Loading...</div>
+      ) : loadError ? (
+        <div
+          style={{
+            background: '#ffe0e0',
+            color: '#c00',
+            padding: 12,
+            borderRadius: 6,
+          }}
+        >
+          {loadError}
+        </div>
       ) : (
         <div
           style={{
@@ -264,21 +280,23 @@ const ProductsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
-                <tr key={p._id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 12 }}>{p.name}</td>
-                  <td style={{ padding: 12 }}>{p.sku}</td>
-                  <td style={{ padding: 12 }}>{p.category}</td>
-                  <td style={{ padding: 12, textAlign: 'right' }}>${p.price.toFixed(2)}</td>
+              {(Array.isArray(products) ? products : []).map((p) => (
+                <tr key={p._id ?? `${p.name}-${p.sku}`} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: 12 }}>{p.name || '-'}</td>
+                  <td style={{ padding: 12 }}>{p.sku || '-'}</td>
+                  <td style={{ padding: 12 }}>{p.category || '-'}</td>
+                  <td style={{ padding: 12, textAlign: 'right' }}>
+                    ${(p.price ?? 0).toFixed(2)}
+                  </td>
                   <td
                     style={{
                       padding: 12,
                       textAlign: 'right',
-                      color: p.quantity <= 10 ? '#e91e63' : 'inherit',
-                      fontWeight: p.quantity <= 10 ? 700 : 400,
+                      color: (p.quantity ?? 0) <= 10 ? '#e91e63' : 'inherit',
+                      fontWeight: (p.quantity ?? 0) <= 10 ? 700 : 400,
                     }}
                   >
-                    {p.quantity}
+                    {p.quantity ?? 0}
                   </td>
                   {isAdmin && (
                     <td style={{ padding: 12, textAlign: 'center' }}>
@@ -297,7 +315,8 @@ const ProductsPage: React.FC = () => {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(p._id)}
+                        onClick={() => p._id && handleDelete(p._id)}
+                        disabled={!p._id}
                         style={{
                           padding: '4px 12px',
                           background: '#e74c3c',

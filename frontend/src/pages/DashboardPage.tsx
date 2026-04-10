@@ -30,27 +30,57 @@ const defaultStats: DashboardStats = {
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     dashboardApi
       .getStats()
-      .then((data) => setStats(data))
-      .catch(console.error)
+      .then((data) =>
+        setStats({
+          ...defaultStats,
+          ...(data ?? {}),
+          recentOrders: Array.isArray(data?.recentOrders) ? data.recentOrders : [],
+          ordersByStatus:
+            data?.ordersByStatus && typeof data.ordersByStatus === 'object'
+              ? data.ordersByStatus
+              : {},
+          revenueOverTime: Array.isArray(data?.revenueOverTime) ? data.revenueOverTime : [],
+        }),
+      )
+      .catch(() => {
+        setError('Failed to load dashboard data. Please try again.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div>Loading dashboard...</div>;
+  if (error) {
+    return (
+      <div
+        style={{
+          background: '#ffe0e0',
+          color: '#c00',
+          padding: 12,
+          borderRadius: 6,
+        }}
+      >
+        {error}
+      </div>
+    );
+  }
   const statCards = [
-    { label: 'Products', value: stats.totalProducts, color: '#2196f3' },
-    { label: 'Orders', value: stats.totalOrders, color: '#4caf50' },
+    { label: 'Products', value: stats.totalProducts ?? 0, color: '#2196f3' },
+    { label: 'Orders', value: stats.totalOrders ?? 0, color: '#4caf50' },
     { label: 'Revenue', value: `$${(stats.totalRevenue ?? 0).toLocaleString()}`, color: '#ff9800' },
-    { label: 'Low Stock', value: stats.lowStockProducts, color: '#e91e63' },
+    { label: 'Low Stock', value: stats.lowStockProducts ?? 0, color: '#e91e63' },
   ];
 
-  const statusData = Object.entries(stats.ordersByStatus).map(([name, value]) => ({
+  const statusData = Object.entries(stats.ordersByStatus ?? {}).map(([name, value]) => ({
     name,
-    value,
+    value: value ?? 0,
   }));
+  const revenueData = Array.isArray(stats.revenueOverTime) ? stats.revenueOverTime : [];
+  const recentOrders = Array.isArray(stats.recentOrders) ? stats.recentOrders : [];
 
   return (
     <div>
@@ -96,15 +126,19 @@ const DashboardPage: React.FC = () => {
           }}
         >
           <h3 style={{ marginTop: 0 }}>Revenue (Last 30 Days)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={stats.revenueOverTime}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="_id" tick={{ fontSize: 12 }} />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="revenue" stroke="#2196f3" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          {revenueData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="_id" tick={{ fontSize: 12 }} />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="revenue" stroke="#2196f3" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ color: '#999' }}>No revenue data available</div>
+          )}
         </div>
         <div
           style={{
@@ -115,24 +149,28 @@ const DashboardPage: React.FC = () => {
           }}
         >
           <h3 style={{ marginTop: 0 }}>Orders by Status</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={statusData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label
-              >
-                {statusData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          {statusData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label
+                >
+                  {statusData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ color: '#999' }}>No order status data available</div>
+          )}
         </div>
       </div>
 
@@ -155,10 +193,10 @@ const DashboardPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {stats.recentOrders.map((order) => (
+            {recentOrders.map((order) => (
               <tr key={order._id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: 10 }}>{order.orderNumber}</td>
-                <td style={{ padding: 10 }}>{order.customer.name}</td>
+                <td style={{ padding: 10 }}>{order.orderNumber || '-'}</td>
+                <td style={{ padding: 10 }}>{order.customer?.name || '-'}</td>
                 <td style={{ padding: 10 }}>${(order.totalAmount ?? 0).toLocaleString()}</td>
                 <td style={{ padding: 10 }}>
                   <span
@@ -185,6 +223,13 @@ const DashboardPage: React.FC = () => {
                 </td>
               </tr>
             ))}
+            {recentOrders.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ padding: 16, color: '#999', textAlign: 'center' }}>
+                  No recent orders
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
